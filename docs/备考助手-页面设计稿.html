@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>备考助手 · 页面设计稿</title>
+<style>
+  :root{
+    --bg:#F7F8FA; --surface:#FFFFFF; --ink:#26292E; --muted:#9AA0A8;
+    --brand:#3D7EFF; --brand-deep:#2F66DB; --brand-soft:#EAF1FF;
+    --right:#16A34A; --right-soft:#E8F6EE;
+    --wrong:#E64545; --wrong-soft:#FDEDED;
+    --amber:#C77714; --amber-soft:#FBF1E0;
+    --line:#F0F1F3; --chip:#F4F5F7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex;min-height:100vh}
+  .sidebar{
+    width:286px;flex:none;background:var(--surface);border-right:1px solid var(--line);
+    padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 8px 20px;border-bottom:1px solid var(--line)}
+  .brand .logo{width:34px;height:34px;border-radius:11px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .brand h1{font-size:16px;margin:0;font-weight:600}
+  .brand p{margin:2px 0 0;font-size:11px;color:var(--muted)}
+  .nav{padding-top:16px;display:flex;flex-direction:column;gap:4px}
+  .nav a{
+    display:flex;align-items:center;gap:9px;text-decoration:none;color:#5A5F66;
+    font-size:13px;padding:9px 10px;border-radius:11px;border:1px solid transparent;
+  }
+  .nav a .num{width:24px;height:24px;flex:none;border-radius:50%;background:var(--chip);color:#7A8088;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500}
+  .nav a:hover{background:#FAFBFC}
+  .nav a.active{background:var(--brand-soft);color:var(--brand);font-weight:500}
+  .nav a.active .num{background:var(--brand);color:#fff}
+
+  main{flex:1;min-width:0;padding:32px 40px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  header.hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 28px;margin-bottom:22px}
+  header.hero .eyebrow{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:500}
+  header.hero h1{font-size:27px;line-height:1.25;margin:13px 0 8px}
+  header.hero p{color:var(--muted);margin:0;max-width:820px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .meta span{display:inline-flex;align-items:center;gap:6px;background:#FAFBFC;border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:500}
+
+  .section{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 28px;margin-bottom:18px;scroll-margin-top:24px}
+  .section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px}
+  .step-badge{min-width:40px;height:36px;flex:none;border-radius:12px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;padding:0 8px}
+  .section h2{font-size:20px;margin:0 0 4px;line-height:1.3}
+  .section .sub{color:var(--muted);font-size:13px;margin:0}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+  .pill.brand{background:var(--brand-soft);color:var(--brand)}
+  .pill.ok{background:var(--right-soft);color:#128A44}
+  .pill.no{background:var(--wrong-soft);color:#D13A3A}
+  .pill.amb{background:var(--amber-soft);color:var(--amber)}
+  .pill.gray{background:var(--chip);color:#7A8088}
+  .pill.lnk{background:#fff;border:1px solid var(--line);color:#5A5F66}
+
+  .block{margin-top:18px}
+  .block h3{font-size:14px;margin:0 0 9px;display:flex;align-items:center;gap:8px}
+  .block h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--brand)}
+  .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .mini{background:#FAFBFC;border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+  .mini .t{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .mini .v{font-size:13px;color:var(--ink)}
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0 2px}
+  .flow span{padding:5px 9px;background:#FAFBFC;border:1px solid var(--line);border-radius:8px;font-size:12px;color:#5A5F66}
+  .flow b{color:var(--brand)}
+  ul.check{margin:10px 0 0;padding-left:19px;color:#4A4F57}
+  ul.check li{margin:5px 0}
+  .note{background:var(--brand-soft);border-radius:12px;padding:11px 13px;color:#2F66DB;font-size:12.5px;line-height:1.6;margin-top:12px}
+  .warn{background:var(--amber-soft);border-radius:12px;padding:11px 13px;color:var(--amber);font-size:12.5px;line-height:1.6;margin-top:12px}
+
+  .page-demo{display:grid;grid-template-columns:403px minmax(0,1fr);gap:28px;align-items:start;margin-top:6px}
+  @media (max-width:1020px){.page-demo{grid-template-columns:1fr}}
+
+  .phone{width:375px;background:var(--bg);border:1px solid var(--line);border-radius:26px;overflow:hidden}
+  .phone .bar{height:32px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .m-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .m-head .back{font-size:17px;color:#5A5F66;width:22px;flex:none}
+  .m-head .tt{flex:1;font-size:15px;font-weight:600;text-align:center}
+  .m-head .act{font-size:16px;color:var(--brand);width:26px;flex:none;text-align:right;font-weight:500}
+  .m-head .sp{width:26px;flex:none}
+  .m-body{padding:14px;display:flex;flex-direction:column;gap:11px}
+  .m-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+  .m-card.dash{border-style:dashed;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;background:transparent}
+  .m-title{font-size:15px;font-weight:600;line-height:1.45}
+  .m-sub{font-size:12px;color:var(--muted)}
+  .m-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .m-row.between{justify-content:space-between}
+  .m-btn{height:44px;border-radius:999px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500}
+  .m-btn.ghost{background:var(--brand-soft);color:var(--brand)}
+  .m-btn.sm{height:32px;padding:0 14px;font-size:12px;font-weight:500;width:auto}
+  .m-label{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .m-input{min-height:44px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 13px;font-size:13px;color:var(--muted);display:flex;align-items:center}
+  .m-input.area{align-items:flex-start;color:var(--ink);line-height:1.6;min-height:74px}
+  .m-progress{height:6px;background:var(--chip);border-radius:999px;overflow:hidden}
+  .m-progress i{display:block;height:100%;background:var(--brand);border-radius:999px}
+  .m-progress i.g{background:var(--right)}
+  .m-progress i.a{background:var(--amber)}
+  .stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat3>div{background:#FAFBFC;border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+  .stat3 .t{font-size:11px;color:var(--muted)}
+  .stat3 .v{font-size:16px;font-weight:600;margin-top:2px}
+  .dot{width:28px;height:28px;flex:none;border-radius:50%;border:1px solid #E2E4E8;background:#fff;color:#7A8088;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .dot.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+  .dot.ok{background:var(--right);border-color:var(--right);color:#fff}
+  .dot.no{background:var(--wrong);border-color:var(--wrong);color:#fff}
+  .opt{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13px}
+  .opt.ok{border-color:var(--right);background:var(--right-soft)}
+  .opt.no{border-color:var(--wrong);background:var(--wrong-soft)}
+  .seg{display:flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px}
+  .seg span{flex:1;text-align:center;padding:7px 0;border-radius:999px;font-size:12px;color:#5A5F66;border:1px solid transparent}
+  .seg span.on{background:var(--surface);color:var(--brand);font-weight:500;border-color:var(--line)}
+  .banner{border-radius:12px;padding:10px 13px;font-size:12.5px;line-height:1.55}
+  .banner.no{background:var(--wrong-soft);color:#D13A3A}
+  .banner.ok{background:var(--right-soft);color:#128A44}
+  .qrow{display:flex;flex-direction:column;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .qrow .stem{font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .qrow.hl{background:var(--amber-soft);border-color:#F0DCBB}
+  .qrow.dim{opacity:.62}
+  .ck{width:18px;height:18px;flex:none;border-radius:5px;border:1px solid #E2E4E8;background:#fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .ck.on{background:var(--brand);border-color:var(--brand)}
+  .pt{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;line-height:1.55}
+  .pt i{width:15px;height:15px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-style:normal;margin-top:2px}
+  .pt.hit i{background:var(--right-soft);color:#128A44}
+  .pt.miss i{background:var(--wrong-soft);color:#D13A3A}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">备</div>
+      <div>
+        <h1>备考助手 · 页面设计稿</h1>
+        <p>Web 全栈项目 · 8 个页面 · 基准 375</p>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+
+  <main>
+    <div class="wrap">
+      <header class="hero">
+        <span class="eyebrow">UI Design Mockups</span>
+        <h1>备考助手 · 全页面设计稿</h1>
+        <p>与《前端实现稿》同一套视觉 Token：<code style="color:#C2410C">#3D7EFF</code> 品牌蓝打底，绿 / 红 / 琥珀三色表达对错与警告。每个页面给出 375 宽拟真稿与右侧字段、交互说明，可直接按稿落 React 组件。</p>
+        <div class="meta">
+          <span>基准 <b>375 × 812</b></span>
+          <span>品牌主色 <b>#3D7EFF</b></span>
+          <span>正确 <b>#16A34A</b></span>
+          <span>错误 <b>#E64545</b></span>
+          <span>页面数 <b>9</b></span>
+        </div>
+      </header>
+
+      <!-- P0 -->
+      <section class="section" id="p0">
+        <div class="section-head">
+          <div class="step-badge">P0</div>
+          <div>
+            <h2>视觉基线</h2>
+            <p class="sub">全部页面共用这一套 Token，不引入新颜色、新圆角。</p>
+          </div>
+        </div>
+        <div class="cards">
+          <div class="mini"><div class="t">品牌色</div><div class="v">#3D7EFF 主操作 · #EAF1FF 软底 · #2F66DB 深色文字</div></div>
+          <div class="mini"><div class="t">语义色</div><div class="v">过关 / 正确 #16A34A · 错误 #E64545 · 警告 #C77714</div></div>
+          <div class="mini"><div class="t">中性色</div><div class="v">页面底 #F7F8FA · 卡片 #FFFFFF · 分割线 #F0F1F3 · 次要文字 #9AA0A8</div></div>
+          <div class="mini"><div class="t">形状</div><div class="v">卡片 14px 圆角 · 按钮 / 标签全圆角 · 选项徽标 28px 圆形</div></div>
+        </div>
+        <div class="note">错误率胶囊分档沿用实现稿规则：&lt;15% 绿、15–25% 琥珀、&gt;25% 红；从未作答显示「未练习」灰。</div>
+      </section>
+
+      <!-- P1 -->
+      <section class="section" id="p1">
+        <div class="section-head">
+          <div class="step-badge">P1</div>
+          <div>
+            <h2>登录 / 注册</h2>
+            <p class="sub">未登录一律跳本页；登录与注册同页 Segmented 切换。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-body" style="padding-top:34px">
+              <div style="text-align:center;padding:6px 0 2px">
+                <div style="width:56px;height:56px;border-radius:18px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;margin:0 auto">备</div>
+                <div class="m-title" style="margin-top:12px">备考助手</div>
+                <div class="m-sub">把一整段杂乱文本，变成能练的题</div>
+              </div>
+              <div class="seg"><span class="on">登录</span><span>注册</span></div>
+              <div>
+                <div class="m-label">邮箱</div>
+                <div class="m-input">you@example.com</div>
+              </div>
+              <div>
+                <div class="m-label">密码</div>
+                <div class="m-input">••••••••</div>
+              </div>
+              <div class="m-btn">登 录</div>
+              <div class="m-sub" style="text-align:center">忘记密码？</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>字段与状态</h3>
+              <ul class="check">
+                <li>邮箱 + 密码两个输入框；注册态追加「确认密码」与「昵称（选填）」。</li>
+                <li>提交按钮在请求期间置灰并显示 loading，防重复提交。</li>
+                <li>校验失败用 toast，不用弹窗。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>交互要点</h3>
+              <ul class="check">
+                <li>已登录用户访问任何页面 → 重定向回考试列表。</li>
+                <li>登录成功 → 跳转 P2；注册成功 → 直接登录进 P2，不再二次登录。</li>
+                <li>JWT 存本地，过期静默用 refresh token 换新。</li>
+              </ul>
+            </div>
+            <div class="note">登录页不放产品介绍长文案，一句话定位 + 表单即可，转化路径最短。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P2 -->
+      <section class="section" id="p2">
+        <div class="section-head">
+          <div class="step-badge">P2</div>
+          <div>
+            <h2>考试列表（首页）</h2>
+            <p class="sub">当前备战的考试卡片：类目数、总题数、过关率、最近练习时间；右上角新建。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="sp"></div><div class="tt" style="text-align:left">备考助手</div><div class="act">＋</div></div>
+            <div class="m-body">
+              <div class="m-card">
+                <div class="m-row between">
+                  <div class="m-title">2026 下半年教资笔试</div>
+                  <span class="pill brand">进行中</span>
+                </div>
+                <div class="m-row" style="margin-top:7px">
+                  <span class="pill gray">4 个类目</span><span class="pill gray">128 题</span><span class="pill gray">最近练习 昨天</span>
+                </div>
+                <div style="margin-top:10px">
+                  <div class="m-row between" style="margin-bottom:5px"><span class="m-sub">已过关 79 / 128</span><span class="m-sub">62%</span></div>
+                  <div class="m-progress"><i class="g" style="width:62%"></i></div>
+                </div>
+                <div class="m-row" style="margin-top:11px">
+                  <div class="m-btn sm" style="flex:1">继续练习</div>
+                  <div class="m-btn sm ghost" style="flex:1">导入</div>
+                </div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <div class="m-title">系统架构设计师</div>
+                  <span class="pill gray">备选中</span>
+                </div>
+                <div class="m-row" style="margin-top:7px">
+                  <span class="pill gray">3 个类目</span><span class="pill gray">56 题</span><span class="pill gray">最近练习 3 天前</span>
+                </div>
+                <div style="margin-top:10px">
+                  <div class="m-row between" style="margin-bottom:5px"><span class="m-sub">已过关 16 / 56</span><span class="m-sub">28%</span></div>
+                  <div class="m-progress"><i class="a" style="width:28%"></i></div>
+                </div>
+                <div class="m-row" style="margin-top:11px">
+                  <div class="m-btn sm" style="flex:1">继续练习</div>
+                  <div class="m-btn sm ghost" style="flex:1">导入</div>
+                </div>
+              </div>
+              <div class="m-card dash">＋ 新建考试</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>卡片字段（对应 exams 表）</h3>
+              <ul class="check">
+                <li>名称、类目数、总题数、过关率（distinct is_correct 题 ÷ 总题）、最近练习时间。</li>
+                <li>过关率进度条只做氛围，数字必须同时出现，避免只靠颜色误读。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>空状态</h3>
+              <div class="flow"><span>无考试时整页替换为</span><b>→</b><span class="pill brand">还没有考试，创建第一个开始备考</span></div>
+              <ul class="check">
+                <li>空状态主按钮「新建考试」，副文案提示下一步是「批量导入题目」。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>交互</h3>
+              <ul class="check">
+                <li>点卡片 → P3 类目树；点「导入」→ P5 导入入口；右上 ＋ → 新建考试弹层（名称 + 考试日期）。</li>
+                <li>下拉刷新重拉统计。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P3 -->
+      <section class="section" id="p3">
+        <div class="section-head">
+          <div class="step-badge">P3</div>
+          <div>
+            <h2>考试详情 · 类目树</h2>
+            <p class="sub">每个节点显示题目数 / 已过关数 / 错误率 + 进度条；支持一层子类目。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">2026 下半年教资笔试</div><div class="act">···</div></div>
+            <div class="m-body">
+              <div class="stat3">
+                <div><div class="t">总题数</div><div class="v">128</div></div>
+                <div><div class="t">已过关</div><div class="v" style="color:var(--right)">79</div></div>
+                <div><div class="t">错误率</div><div class="v" style="color:var(--amber)">12.4%</div></div>
+              </div>
+              <div class="m-card" style="display:flex;align-items:center;justify-content:space-between">
+                <div class="m-row"><span style="font-size:14px;font-weight:600">错题本</span><span class="pill no">待订正 8</span></div>
+                <span style="font-size:16px;color:var(--muted)">›</span>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <div class="m-title" style="font-size:14px">教育心理学</div>
+                  <span class="pill amb">错误率 22.5%</span>
+                </div>
+                <div class="m-row" style="margin-top:6px">
+                  <span class="pill gray">56 题</span><span class="pill ok">已过关 31</span>
+                </div>
+                <div class="m-progress" style="margin-top:9px"><i style="width:55%"></i></div>
+                <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--line);padding-top:10px">
+                  <div class="m-row between" style="padding-left:10px">
+                    <span style="font-size:13px">└ 学习动机</span>
+                    <span class="m-row" style="gap:6px"><span class="pill gray">32 题</span><span class="pill amb">错误率 25.0%</span></span>
+                  </div>
+                  <div class="m-row between" style="padding-left:10px">
+                    <span style="font-size:13px">└ 学习理论</span>
+                    <span class="m-row" style="gap:6px"><span class="pill gray">24 题</span><span class="pill ok">错误率 12.1%</span></span>
+                  </div>
+                </div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <div class="m-title" style="font-size:14px">综合素质</div>
+                  <span class="pill ok">错误率 8.2%</span>
+                </div>
+                <div class="m-row" style="margin-top:6px">
+                  <span class="pill gray">48 题</span><span class="pill ok">已过关 37</span>
+                </div>
+                <div class="m-progress" style="margin-top:9px"><i class="g" style="width:77%"></i></div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <div class="m-title" style="font-size:14px">教育法律法规</div>
+                  <span class="pill no">错误率 31.0%</span>
+                </div>
+                <div class="m-row" style="margin-top:6px">
+                  <span class="pill gray">24 题</span><span class="pill ok">已过关 11</span>
+                </div>
+                <div class="m-progress" style="margin-top:9px"><i class="a" style="width:46%"></i></div>
+              </div>
+              <div class="m-btn ghost">＋ 新增类目</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>节点字段（对应 categories + category_stats）</h3>
+              <ul class="check">
+                <li>题目数（含子树）、已过关数（distinct is_correct）、错误率（错次 ÷ 总作答次数）。</li>
+                <li>子类目缩进展示，用 └ 前缀；父节点统计 = 自身 + 全部子节点。</li>
+                <li>从未作答的类目错误率显示「未练习」灰胶囊，不显示 0%。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>交互</h3>
+              <ul class="check">
+                <li>点类目 → P4；考试只有一个类目时自动跳过本层直达 P4。</li>
+                <li>「错题本」入口固定在总统计下方：待订正数实时来自 attempts，点入 P9。</li>
+                <li>右上 ··· → 重命名 / 删除考试 / 新增类目。</li>
+                <li>三个统计读 category_stats 预聚合表，答题后异步重算该节点及父链。</li>
+              </ul>
+            </div>
+            <div class="warn">统计查询必须带 user_id 过滤——这是多人共用题库后最容易漏掉的隐蔽 bug。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P4 -->
+      <section class="section" id="p4">
+        <div class="section-head">
+          <div class="step-badge">P4</div>
+          <div>
+            <h2>类目详情 · 题型分组题单</h2>
+            <p class="sub">按题型分组（单选·多选 / 填空 / 简答），每题显示过关状态与历史作答次数。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">教育心理学</div><div class="act">＋</div></div>
+            <div class="m-body">
+              <div class="seg"><span class="on">单选·多选 32</span><span>填空 12</span><span>简答 12</span></div>
+              <div class="qrow">
+                <div class="stem">根据学习动机的内驱力理论，个体为获得长者赞许而表现出的学习动机属于（　）</div>
+                <div class="m-row"><span class="pill ok">已过关</span><span class="pill gray">作答 3 次</span><span class="pill gray">A 选项</span></div>
+              </div>
+              <div class="qrow">
+                <div class="stem">自我效能感这一概念最早由心理学家（　）提出，指个体对自己能否完成某行为的推测与判断</div>
+                <div class="m-row"><span class="pill no">未过关 · 错 2 次</span><span class="pill gray">作答 4 次</span></div>
+              </div>
+              <div class="qrow">
+                <div class="stem">下列属于内部学习动机的是（　）</div>
+                <div class="m-row"><span class="pill gray">未作答</span></div>
+              </div>
+              <div class="qrow">
+                <div class="stem">耶克斯—多德森定律表明，动机水平与学习效率之间呈（　）关系</div>
+                <div class="m-row"><span class="pill ok">已过关</span><span class="pill gray">作答 2 次</span></div>
+              </div>
+              <div class="m-row" style="gap:8px">
+                <div class="m-btn" style="flex:1.4">练习本组 32 题</div>
+                <div class="m-btn ghost" style="flex:1">导入</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>题单行字段</h3>
+              <ul class="check">
+                <li>题干截断两行；状态胶囊三态：已过关（绿）/ 未过关·错 N 次（红）/ 未作答（灰）。</li>
+                <li>「作答 N 次」读 attempts 流水 count；点行 → 题目详情（题干、答案、解析、历次作答）。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>交互</h3>
+              <ul class="check">
+                <li>Segmented 切题型分组，只换列表数据，不重建页面。</li>
+                <li>「练习本组」→ P8，默认顺序模式；组内只含该题型。</li>
+                <li>右上 ＋ → P6 单个导入（预填当前类目）。</li>
+              </ul>
+            </div>
+            <div class="note">多选题在行内补一个「多选」小标，进入练习时选项徽标允许选多个。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P5 -->
+      <section class="section" id="p5">
+        <div class="section-head">
+          <div class="step-badge">P5</div>
+          <div>
+            <h2>导入入口 · 题型与路径选择</h2>
+            <p class="sub">先固定本次导入题型，再选择「单个导入」或「批量导入」（交互与《前端实现稿》步骤 6 对齐）。</p>
+          </div>
+        </div>
+        <div class="flow" style="margin-bottom:14px">
+          <span>选择题型</span><b>→</b><span>单个导入</span><span>批量导入</span>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">导入</div><div class="sp"></div></div>
+            <div class="m-body">
+              <div>
+                <div class="m-label">第一步 · 选择题型</div>
+                <div class="seg"><span class="on">单选</span><span>多选</span><span>填空</span><span>简答</span></div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <div>
+                    <div class="m-title" style="font-size:14px">单个导入</div>
+                    <div class="m-sub">逐题手动录入，动态表单</div>
+                  </div>
+                  <span style="font-size:16px;color:var(--muted)">›</span>
+                </div>
+              </div>
+              <div class="m-card" style="border-color:#D5E3FF;background:var(--brand-soft)">
+                <div class="m-row between">
+                  <div>
+                    <div class="m-title" style="font-size:14px;color:var(--brand-deep)">批量导入<span class="pill brand" style="margin-left:6px">推荐</span></div>
+                    <div class="m-sub" style="color:var(--brand-deep)">粘贴 / 拍照 / 文件，AI 自动解析成题目</div>
+                  </div>
+                  <span style="font-size:16px;color:var(--brand)">›</span>
+                </div>
+              </div>
+              <div class="m-sub" style="text-align:center">题型会带入下一步，批量导入不支持语音</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>路由与参数</h3>
+              <ul class="check">
+                <li>题型作为 query 参数带入下一步：单个 → P6，批量 → P7，换页不重选。</li>
+                <li>批量导入不支持语音，语音只作输入辅助——约束写进页面文案。</li>
+                <li>从 P3 / P4 的「导入」按钮进入时，类目同样预填。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>为什么批量标「推荐」</h3>
+              <div class="note" style="margin-top:6px">AI 解析是本产品的核心差异点，默认引导用户走批量路径；单个导入是兜底，不该抢主入口。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P6 -->
+      <section class="section" id="p6">
+        <div class="section-head">
+          <div class="step-badge">P6</div>
+          <div>
+            <h2>单个导入</h2>
+            <p class="sub">逐题手动录入，题型切换动态切换表单；也是批量解析失败时的兜底。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">单个导入</div><div class="sp"></div></div>
+            <div class="m-body">
+              <div class="seg"><span class="on">单选</span><span>多选</span><span>填空</span><span>简答</span></div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <span class="m-label" style="margin:0">类目</span>
+                  <span style="font-size:13px;color:var(--ink)">学习动机 ▾</span>
+                </div>
+              </div>
+              <div>
+                <div class="m-label">题干</div>
+                <div class="m-input area" style="min-height:60px;color:var(--ink)">根据学习动机的内驱力理论，个体为获得长者赞许而表现出的学习动机属于（　）</div>
+              </div>
+              <div>
+                <div class="m-label">选项（点击圆标设为正确答案）</div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div class="opt"><div class="dot">A</div>认知内驱力</div>
+                  <div class="opt ok"><div class="dot ok">B</div>自我提高内驱力</div>
+                  <div class="opt"><div class="dot">C</div>附属内驱力</div>
+                  <div class="opt"><div class="dot">D</div>成就动机</div>
+                </div>
+              </div>
+              <div>
+                <div class="m-label">解析（选填）</div>
+                <div class="m-input area" style="min-height:54px">附属内驱力是为获得长者的赞许与认可而努力的需要…</div>
+              </div>
+              <div class="m-row" style="gap:8px">
+                <div class="m-btn" style="flex:1.5">保存</div>
+                <div class="m-btn ghost" style="flex:1">保存并继续</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>题型 → 表单差异</h3>
+              <ul class="check">
+                <li>单选：A–D 选项输入 + 圆形答案徽标（点圆标即设为正确答案）。</li>
+                <li>多选：同上，但圆标允许多个同时点亮。</li>
+                <li>填空：选项区收起，题干内用 __ 标记空位，答案为文本输入。</li>
+                <li>简答：答案用文本域，标注「将使用 AI 按采分点判分」。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>校验与保存</h3>
+              <ul class="check">
+                <li>提交前校验：题干非空、答案与题型自洽（单选答案必须在选项内）。</li>
+                <li>题干归一化 hash 查重，重复时提示「已有同题」并阻止。</li>
+                <li>「保存并继续」清空表单保留类目与题型，适合连续补录。</li>
+              </ul>
+            </div>
+            <div class="note">本页是批量导入（P7）解析失败时的兜底路径，可从批量导入页的错误 Banner 直接跳转并带入已粘贴文本。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P7 -->
+      <section class="section" id="p7">
+        <div class="section-head">
+          <div class="step-badge">P7</div>
+          <div>
+            <h2>批量导入 · AI 解析与校对（核心）</h2>
+            <p class="sub">粘贴 / 拍照 / 文件 → AI 分块解析（进度可见）→ 草稿逐条校对 → 确认入库，绝不自动写入。</p>
+          </div>
+        </div>
+        <div class="flow" style="margin-bottom:14px">
+          <span>粘贴文本</span><b>→</b><span>AI 解析 2/5 段</span><b>→</b><span>校对确认</span><b>→</b><span class="pill brand">批量入库</span>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">批量导入</div><div class="sp"></div></div>
+            <div class="m-body">
+              <div class="m-card">
+                <div class="m-row">
+                  <span class="pill brand">粘贴文本</span>
+                  <span class="pill lnk">拍照识别 · 二期</span>
+                  <span class="pill lnk">文件导入 · 二期</span>
+                </div>
+              </div>
+              <div class="m-card">
+                <div class="m-label">粘贴题目文本（教材 / 真题 / 笔记）</div>
+                <div class="m-input area">11. 根据学习动机的内驱力理论，个体为获得长者赞许而表现出的学习动机属于（　）
+A. 认知内驱力 B. 自我提高内驱力
+C. 附属内驱力 D. ……
+12. 自我效能感最早由（　）提出……</div>
+                <div class="m-row between" style="margin-top:8px"><span class="m-sub">已粘贴 2,318 字</span><span class="m-sub" style="color:var(--brand)">清空</span></div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between">
+                  <span class="m-label" style="margin:0">目标类目（不指定则由 AI 推荐）</span>
+                  <span style="font-size:13px;color:var(--ink)">学习动机 ▾</span>
+                </div>
+              </div>
+              <div class="m-card" style="background:var(--brand-soft);border-color:#D5E3FF">
+                <div class="m-row between"><span style="font-size:13px;color:var(--brand-deep);font-weight:500">AI 解析中 · 已解析 2/5 段</span><span style="font-size:12px;color:var(--brand-deep)">18 题</span></div>
+                <div class="m-progress" style="margin-top:8px;background:#fff"><i style="width:40%"></i></div>
+              </div>
+              <div class="m-card">
+                <div class="m-row between" style="margin-bottom:9px"><span style="font-size:13px;font-weight:600">校对确认（3）</span><span class="m-sub">低置信高亮</span></div>
+                <div class="qrow" style="margin-bottom:7px">
+                  <div class="m-row">
+                    <div class="ck on">✓</div>
+                    <span class="pill gray">单选 ▾</span><span class="pill gray">学习动机 ▾</span><span class="pill ok">置信 0.92</span>
+                  </div>
+                  <div class="stem">根据学习动机的内驱力理论，个体为获得长者赞许而表现出的学习动机属于…</div>
+                </div>
+                <div class="qrow hl" style="margin-bottom:7px">
+                  <div class="m-row">
+                    <div class="ck on">✓</div>
+                    <span class="pill gray">填空 ▾</span><span class="pill gray">学习动机 ▾</span><span class="pill amb">置信 0.65</span>
+                  </div>
+                  <div class="stem">耶克斯—多德森定律表明，动机水平与学习效率之间呈＿＿关系</div>
+                </div>
+                <div class="qrow dim">
+                  <div class="m-row">
+                    <div class="ck"></div>
+                    <span class="pill gray">单选 ▾</span><span class="pill lnk">与已有题目重复</span>
+                  </div>
+                  <div class="stem">下列属于内部学习动机的是（　）</div>
+                </div>
+              </div>
+              <div class="m-btn">确认导入（2）</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>校对行可编辑项</h3>
+              <ul class="check">
+                <li>题型下拉（单选 / 多选 / 填空 / 简答）可改；类目下拉从已有类目中选，选不到可建议新建。</li>
+                <li>置信度 &lt; 0.7 整行琥珀高亮；去重命中显示「与已有题目重复」且默认不勾选。</li>
+                <li>点题干展开完整预览：选项、答案、解析均可改后再入库。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>工程约束（页面必须体现）</h3>
+              <ul class="check">
+                <li>解析中禁止重复提交，按钮置灰；进度用 SSE / 轮询，显示「已解析 x/y 段」。</li>
+                <li>单次导入上限 50 题，超限提示分批粘贴。</li>
+                <li>解析失败 → 顶部 Banner 提示，保留「去单个录入」兜底入口（P6）。</li>
+                <li>入口三选一：粘贴文本（一期）/ 拍照识别（二期）/ 文件导入（二期），未上线入口置灰不阻断主流程。</li>
+                <li>批量选择：全选 / 仅选高置信度。</li>
+              </ul>
+            </div>
+            <div class="warn">校对是硬性环节，不是可选项——AI 一次解析 30 题必有错，没有这一步题库三个月后就是脏的。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P8 -->
+      <section class="section" id="p8">
+        <div class="section-head">
+          <div class="step-badge">P8</div>
+          <div>
+            <h2>练习作答</h2>
+            <p class="sub">一题一屏：题干 → 作答区 → 即时判定反馈 → 下一题；顶部进度，退出保留进度。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">✕</div><div class="tt">练习 · 单选</div><div class="act" style="font-size:13px">12/30</div></div>
+            <div class="m-progress" style="margin:0 14px;border-radius:999px"><i class="g" style="width:40%"></i></div>
+            <div class="m-body">
+              <div class="m-card">
+                <div class="m-row" style="margin-bottom:8px"><span class="pill brand">单选</span><span class="pill gray">学习动机</span></div>
+                <div class="m-title">根据学习动机的内驱力理论，个体为获得长者赞许而表现出的学习动机属于（　）</div>
+              </div>
+              <div class="opt ok"><div class="dot ok">A</div>认知内驱力</div>
+              <div class="opt"><div class="dot">B</div>自我提高内驱力</div>
+              <div class="opt no"><div class="dot no">C</div>附属内驱力</div>
+              <div class="opt"><div class="dot">D</div>成就动机</div>
+              <div class="banner no">回答错误 · 正确答案 <b>A</b>。附属内驱力指为获得长者（家长、教师）的赞许与认可而努力的需要。</div>
+              <div class="m-btn">下一题</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>客观题判定（本地完成，零延迟）</h3>
+              <ul class="check">
+                <li>单选：选中即高亮，提交后正确绿 / 错误红，徽标复用实现稿的 OptionBadge 四态。</li>
+                <li>多选：徽标支持多选，答案为集合比对。</li>
+                <li>填空：归一化后比对（忽略空格与全角标点），命中即过。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>简答题 · AI 判分反馈态</h3>
+              <div class="m-card" style="max-width:420px">
+                <div class="m-row between"><span style="font-size:13px;font-weight:600">AI 判分 · <span style="color:var(--brand)">78 分</span></span><span class="pill ok">过关</span></div>
+                <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+                  <div class="pt hit"><i>✓</i><span>命中：教育是有目的地培养人的社会活动</span></div>
+                  <div class="pt hit"><i>✓</i><span>命中：具有社会性、目的性</span></div>
+                  <div class="pt miss"><i>✗</i><span>遗漏：未提到促进个体社会化</span></div>
+                </div>
+                <div class="m-sub" style="margin-top:8px">点评：要点基本到位，补充教育的社会功能会更完整。</div>
+                <div class="m-row" style="margin-top:10px"><div class="m-btn sm ghost">我觉得我答对了</div></div>
+              </div>
+              <ul class="check">
+                <li>score ≥ 60 且采分点覆盖率 ≥ 0.6 才判过关。</li>
+                <li>AI 超时 10s 降级为「判对 / 判错」自评按钮；误判可一键翻转并标记 overridden。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>其他状态</h3>
+              <ul class="check">
+                <li>中途退出：弹层确认「保存进度」→ 下次进入可断点续答。</li>
+                <li>答错自动进错题本；答对后若该题在错题本中 → 移入「已订正」。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- P9 -->
+      <section class="section" id="p9">
+        <div class="section-head">
+          <div class="step-badge">P9</div>
+          <div>
+            <h2>错题本</h2>
+            <p class="sub">入口在考试详情（P3）总统计下方；按类目筛选，按错误次数排序；答对移入「已订正」。</p>
+          </div>
+        </div>
+        <div class="page-demo">
+          <div class="phone">
+            <div class="bar"><span>9:41</span><span>备 · v1.0</span></div>
+            <div class="m-head"><div class="back">‹</div><div class="tt">错题本 · 教资笔试</div><div class="sp"></div></div>
+            <div class="m-body">
+              <div class="chips">
+                <span class="pill brand">全部 12</span>
+                <span class="pill lnk">教育心理学 7</span>
+                <span class="pill lnk">综合素质 3</span>
+                <span class="pill lnk">法律法规 2</span>
+              </div>
+              <div class="m-row between">
+                <span class="m-sub">排序：错误次数 ▾</span>
+                <span class="pill gray">含已订正 4</span>
+              </div>
+              <div class="qrow">
+                <div class="stem">自我效能感这一概念最早由心理学家（　）提出</div>
+                <div class="m-row"><span class="pill no">错 3 次</span><span class="pill gray">学习动机</span><span class="pill gray">2 天前</span></div>
+              </div>
+              <div class="qrow">
+                <div class="stem">教师聘任制度中，聘任合同的最长期限一般为（　）年</div>
+                <div class="m-row"><span class="pill no">错 2 次</span><span class="pill gray">法律法规</span><span class="pill gray">昨天</span></div>
+              </div>
+              <div class="qrow dim">
+                <div class="stem">学习策略中，计划、监视与调节属于（　）策略</div>
+                <div class="m-row"><span class="pill ok">已订正</span><span class="pill gray">曾错 1 次</span></div>
+              </div>
+              <div class="m-btn">只刷错题（8）</div>
+            </div>
+          </div>
+          <div>
+            <div class="block" style="margin-top:0">
+              <h3>数据来源（不复制题目）</h3>
+              <ul class="check">
+                <li>错题池由 attempts 派生：存在 is_correct = false 的题目即入池。</li>
+                <li>之后再答对 → 移入「已订正」分组，仍可查看但不计入待刷数量。</li>
+                <li>筛选、排序都在前端完成，数据量小时无需后端分页。</li>
+              </ul>
+            </div>
+            <div class="block">
+              <h3>交互</h3>
+              <ul class="check">
+                <li>类目 chips 单选筛选；「只刷错题」→ P8，模式锁定为错题重练。</li>
+                <li>本页不设底部 Tab，唯一入口是 P3 考试详情的「错题本」卡片，待订正数实时显示。</li>
+                <li>点行 → 题目详情，可直接看答案与解析。</li>
+              </ul>
+            </div>
+            <div class="note">「已订正」置灰展示而不是消失——保留复习痕迹，待刷数不虚高。</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  const pages = [
+    ['p0', 'P0', '视觉基线'],
+    ['p1', 'P1', '登录 / 注册'],
+    ['p2', 'P2', '考试列表'],
+    ['p3', 'P3', '类目树'],
+    ['p4', 'P4', '类目详情'],
+    ['p5', 'P5', '导入入口'],
+    ['p6', 'P6', '单个导入'],
+    ['p7', 'P7', '批量导入'],
+    ['p8', 'P8', '练习作答'],
+    ['p9', 'P9', '错题本']
+  ];
+  const nav = document.getElementById('nav');
+  nav.innerHTML = pages.map(([id, n, title]) =>
+    `<a href="#${id}" data-id="${id}"><span class="num">${n}</span><span>${title}</span></a>`
+  ).join('');
+
+  const links = [...nav.querySelectorAll('a')];
+  const sections = pages.map(([id]) => document.getElementById(id));
+  function setActive(id) {
+    links.forEach((a) => a.classList.toggle('active', a.dataset.id === id));
+  }
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visible) setActive(visible.target.id);
+  }, { rootMargin: '-15% 0px -65% 0px' });
+  sections.forEach((s) => s && observer.observe(s));
+</script>
+</body>
+</html>
