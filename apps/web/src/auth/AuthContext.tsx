@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import * as api from '@/api/client';
 import type { AuthSession, LoginInput, RegisterInput, UpdateProfileInput } from '@/types';
@@ -6,6 +12,20 @@ import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => api.getStoredSession());
+
+  useEffect(() => {
+    const handleSessionExpired = () => setSession(null);
+    window.addEventListener(
+      api.AUTH_SESSION_EXPIRED_EVENT,
+      handleSessionExpired,
+    );
+    return () => {
+      window.removeEventListener(
+        api.AUTH_SESSION_EXPIRED_EVENT,
+        handleSessionExpired,
+      );
+    };
+  }, []);
 
   const login = useCallback(async (input: LoginInput) => {
     const nextSession = await api.login(input);

@@ -14,6 +14,8 @@ import type {
   LoginInput,
   PracticeAnswerInput,
   PracticeMode,
+  PracticeSessionDetail,
+  PracticeSessionSummary,
   PracticeSubmitResult,
   Question,
   QuestionInput,
@@ -26,6 +28,7 @@ import { DEFAULT_LLM_CONFIG } from '@/types';
 const SESSION_KEY = 'exam-assistant.session';
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:3001';
+export const AUTH_SESSION_EXPIRED_EVENT = 'exam-assistant:auth-session-expired';
 
 type ApiErrorPayload = {
   message?: string;
@@ -47,7 +50,7 @@ type AuthApiSession = {
   expiresIn?: number;
 };
 
-class ApiClientError extends Error {
+export class ApiClientError extends Error {
   constructor(
     message: string,
     public readonly statusCode: number,
@@ -62,6 +65,8 @@ async function apiRequest<T>(
   path: string,
   init: RequestInit & { token?: string } = {},
 ): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15_000);
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -70,10 +75,29 @@ async function apiRequest<T>(
     headers.set('Authorization', `Bearer ${init.token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiClientError(
+        '请求超时，请检查后端服务是否已启动',
+        0,
+        'REQUEST_TIMEOUT',
+      );
+    }
+    throw new ApiClientError(
+      '无法连接后端服务，请检查 3001 端口',
+      0,
+      'NETWORK_ERROR',
+    );
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const raw = await response.text();
   let data: unknown = null;
 
@@ -208,7 +232,8 @@ async function authenticatedRequest<T>(
 ): Promise<T> {
   const session = readSession();
   if (!session) {
-    throw new Error('请先登录');
+    window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+    throw new ApiClientError('请先登录', 401, 'SESSION_REQUIRED');
   }
 
   try {
@@ -227,9 +252,20 @@ async function authenticatedRequest<T>(
         ...init,
         token: refreshed.token,
       });
-    } catch {
-      clearSession();
-      throw new Error('登录状态已过期，请重新登录');
+    } catch (refreshError) {
+      if (
+        refreshError instanceof ApiClientError &&
+        refreshError.statusCode === 401
+      ) {
+        clearSession();
+        window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+        throw new ApiClientError(
+          '登录状态已过期，请重新登录',
+          401,
+          'SESSION_EXPIRED',
+        );
+      }
+      throw refreshError;
     }
   }
 }
@@ -439,11 +475,36 @@ export async function submitAttempt(
 export async function submitPracticeAnswers(
   examId: string,
   answers: PracticeAnswerInput[],
+  options?: {
+    categoryId?: string;
+    mode?: PracticeMode;
+  },
 ): Promise<PracticeSubmitResult> {
   return authenticatedRequest<PracticeSubmitResult>('/api/practice/submit', {
     method: 'POST',
-    body: JSON.stringify({ examId, answers }),
+    body: JSON.stringify({
+      examId,
+      categoryId: options?.categoryId,
+      mode: options?.mode ?? 'all',
+      answers,
+    }),
   });
+}
+
+export async function listPracticeSessions(
+  examId: string,
+): Promise<PracticeSessionSummary[]> {
+  return authenticatedRequest<PracticeSessionSummary[]>(
+    `/api/practice/records?examId=${encodeURIComponent(examId)}`,
+  );
+}
+
+export async function getPracticeSession(
+  sessionId: string,
+): Promise<PracticeSessionDetail> {
+  return authenticatedRequest<PracticeSessionDetail>(
+    `/api/practice/records/${encodeURIComponent(sessionId)}`,
+  );
 }
 
 export async function listWrongBook(): Promise<WrongBookItem[]> {

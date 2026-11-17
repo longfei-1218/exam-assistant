@@ -14,11 +14,13 @@ import {
   deleteQuestion,
   examInputSchema,
   getExam,
+  getPracticeSession,
   getQuestion,
   listAttempts,
   listCategories,
   listExams,
   listQuestions,
+  listPracticeSessions,
   listWrongBook,
   practiceInputSchema,
   practiceQuestions,
@@ -212,6 +214,27 @@ export async function registerStudyRoutes(app: FastifyInstance) {
         userId(request),
         practiceSubmitSchema.parse(request.body),
       ),
+  );
+
+  app.get(
+    '/api/practice/records',
+    { preHandler: authenticate },
+    async (request) => {
+      const { examId } = request.query as { examId?: string };
+      if (!examId) {
+        throw new ApiError(400, 'VALIDATION_ERROR', '缺少 examId');
+      }
+      return listPracticeSessions(userId(request), examId);
+    },
+  );
+
+  app.get(
+    '/api/practice/records/:id',
+    { preHandler: authenticate },
+    async (request) => {
+      const { id } = request.params as { id: string };
+      return getPracticeSession(userId(request), id);
+    },
   );
 
   app.get(

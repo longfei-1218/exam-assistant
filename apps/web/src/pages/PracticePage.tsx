@@ -1,6 +1,5 @@
 import {
   Button,
-  Checkbox,
   Empty,
   Input,
   NavBar,
@@ -19,6 +18,7 @@ import * as api from '@/api/client';
 import { useThrottledCallback } from '@/hooks/useThrottledCallback';
 import type {
   PracticeMode,
+  PracticeSessionDetail,
   PracticeSubmitResult,
   Question,
   QuestionType,
@@ -82,12 +82,16 @@ function resultTone(isCorrect: boolean | null) {
   };
 }
 
-function PracticeResultView({
+export function PracticeResultView({
   result,
   onRestart,
+  onBack,
+  backLabel = '返回',
 }: {
-  result: PracticeSubmitResult;
-  onRestart: () => void;
+  result: PracticeSubmitResult | PracticeSessionDetail;
+  onRestart?: () => void;
+  onBack?: () => void;
+  backLabel?: string;
 }) {
   const firstWrongIndex = result.results.findIndex(
     (item) => item.attempt.isCorrect === false,
@@ -103,7 +107,9 @@ function PracticeResultView({
 
   return (
     <main className="min-h-screen bg-[#f5f6f8] pb-8">
-      <NavBar onBack={() => window.history.back()}>练习结果</NavBar>
+      <NavBar onBack={onBack ?? (() => window.history.back())}>
+        练习结果
+      </NavBar>
 
       <div className="mx-auto w-full max-w-[560px] px-4 pt-3">
         <section className="rounded-2xl bg-white p-4">
@@ -178,15 +184,31 @@ function PracticeResultView({
           )}
         </section>
 
-        <Button
-          block
-          color="primary"
-          size="large"
-          className="mt-4"
-          onClick={onRestart}
-        >
-          重新练习
-        </Button>
+        {(onRestart || onBack) && (
+          <div className="mt-4 flex flex-col gap-2">
+            {onRestart && (
+              <Button
+                block
+                color="primary"
+                size="large"
+                onClick={onRestart}
+              >
+                重新练习
+              </Button>
+            )}
+            {onBack && (
+              <Button
+                block
+                color="primary"
+                fill="outline"
+                size="large"
+                onClick={onBack}
+              >
+                {backLabel}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
@@ -271,6 +293,8 @@ export function PracticePage() {
     return (
       <PracticeResultView
         result={submitPractice.data}
+        onBack={() => navigate(`/exams/${examId}`)}
+        backLabel="返回考试"
         onRestart={() => {
           setIndex(0);
           setAnswers({});
@@ -377,18 +401,33 @@ export function PracticePage() {
           )}
 
           {question.type === 'multi_choice' && (
-            <Checkbox.Group
-              value={parseAnswerArray(answer)}
-              onChange={(value) => setCurrentAnswer(JSON.stringify(value))}
-            >
-              <Space direction="vertical" block>
-                {question.options.map((option) => (
-                  <Checkbox key={option} value={optionKey(option)}>
-                    {option}
-                  </Checkbox>
-                ))}
-              </Space>
-            </Checkbox.Group>
+            <div className="flex flex-col gap-3">
+              {question.options.map((option) => {
+                const key = optionKey(option);
+                const selectedValues = parseAnswerArray(answer);
+                const checked = selectedValues.includes(key);
+
+                return (
+                  <label
+                    key={option}
+                    className="flex cursor-pointer items-start gap-3 text-sm text-[#26292e]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const next = checked
+                          ? selectedValues.filter((value) => value !== key)
+                          : [...selectedValues, key].sort();
+                        setCurrentAnswer(JSON.stringify(next));
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#3d7eff]"
+                    />
+                    <span>{option}</span>
+                  </label>
+                );
+              })}
+            </div>
           )}
 
           {question.type === 'fill_blank' && (

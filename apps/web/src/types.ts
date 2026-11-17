@@ -152,11 +152,32 @@ export type PracticeQuestionResult = {
   attempt: Attempt;
 };
 
-export type PracticeSubmitResult = {
+export type PracticeSessionSummary = {
+  id: string;
+  examId: string;
+  categoryId: string | null;
+  mode: string;
   total: number;
   correctCount: number;
   wrongCount: number;
   pendingCount: number;
+  createdAt: string;
+};
+
+export type PracticeSessionDetail = PracticeSessionSummary & {
+  results: PracticeQuestionResult[];
+};
+
+export type PracticeSubmitResult = {
+  sessionId: string;
+  examId: string;
+  categoryId: string | null;
+  mode: string;
+  total: number;
+  correctCount: number;
+  wrongCount: number;
+  pendingCount: number;
+  createdAt: string;
   results: PracticeQuestionResult[];
 };
 

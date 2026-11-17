@@ -60,6 +60,8 @@ export const practiceInputSchema = z.object({
 
 export const practiceSubmitSchema = z.object({
   examId: z.string().min(1),
+  categoryId: z.string().min(1).nullable().optional(),
+  mode: z.enum(['all', 'wrong', 'unpassed', 'category']).default('all'),
   answers: z
     .array(
       z.object({
@@ -839,47 +841,123 @@ export async function submitPracticeAnswers(
   const questionMap = new Map(
     questions.map((question) => [question.id, question]),
   );
-  const attempts = await prisma.$transaction(
-    input.answers.map((item) => {
-      const question = questionMap.get(item.questionId);
-      if (!question) {
-        throw new ApiError(404, 'NOT_FOUND', '练习题目不存在');
-      }
-      const isCorrect = judgeObjective(
-        question.type,
-        question.answer,
-        item.answer,
-      );
-      return prisma.attempt.create({
-        data: {
-          userId,
-          questionId: question.id,
-          answerJson: item.answer,
-          isCorrect,
-          score: isCorrect === null ? null : isCorrect ? 100 : 0,
-          answerHash: answerHash(question.stem, item.answer),
-          durationMs: item.durationMs,
-        },
-      });
-    }),
-  );
+  return prisma.$transaction(async (tx) => {
+    const attempts = await Promise.all(
+      input.answers.map((item) => {
+        const question = questionMap.get(item.questionId);
+        if (!question) {
+          throw new ApiError(404, 'NOT_FOUND', '练习题目不存在');
+        }
+        const isCorrect = judgeObjective(
+          question.type,
+          question.answer,
+          item.answer,
+        );
+        return tx.attempt.create({
+          data: {
+            userId,
+            questionId: question.id,
+            answerJson: item.answer,
+            isCorrect,
+            score: isCorrect === null ? null : isCorrect ? 100 : 0,
+            answerHash: answerHash(question.stem, item.answer),
+            durationMs: item.durationMs,
+          },
+        });
+      }),
+    );
 
-  const results = input.answers.map((item, index) => ({
-    question: questionDto(questionMap.get(item.questionId) as QuestionRecord),
-    attempt: attemptDto(attempts[index] as (typeof attempts)[number]),
-  }));
-  const correctCount = results.filter(
-    (result) => result.attempt.isCorrect === true,
-  ).length;
-  const wrongCount = results.filter(
-    (result) => result.attempt.isCorrect === false,
-  ).length;
+    const results = input.answers.map((item, index) => ({
+      question: questionDto(
+        questionMap.get(item.questionId) as QuestionRecord,
+      ),
+      attempt: attemptDto(attempts[index] as (typeof attempts)[number]),
+    }));
+    const correctCount = results.filter(
+      (result) => result.attempt.isCorrect === true,
+    ).length;
+    const wrongCount = results.filter(
+      (result) => result.attempt.isCorrect === false,
+    ).length;
+    const pendingCount = results.length - correctCount - wrongCount;
+    const session = await tx.practiceSession.create({
+      data: {
+        userId,
+        examId: input.examId,
+        categoryId: input.categoryId ?? null,
+        mode: input.mode,
+        total: results.length,
+        correctCount,
+        wrongCount,
+        pendingCount,
+        resultJson: { results } as unknown as Prisma.InputJsonValue,
+      },
+    });
 
+    return {
+      sessionId: session.id,
+      examId: session.examId,
+      categoryId: session.categoryId,
+      mode: session.mode,
+      total: session.total,
+      correctCount: session.correctCount,
+      wrongCount: session.wrongCount,
+      pendingCount: session.pendingCount,
+      createdAt: session.createdAt.toISOString(),
+      results,
+    };
+  });
+}
+
+function practiceSessionSummary(session: {
+  id: string;
+  examId: string;
+  categoryId: string | null;
+  mode: string;
+  total: number;
+  correctCount: number;
+  wrongCount: number;
+  pendingCount: number;
+  createdAt: Date;
+}) {
   return {
-    total: results.length,
-    correctCount,
-    wrongCount,
-    pendingCount: results.length - correctCount - wrongCount,
-    results,
+    id: session.id,
+    examId: session.examId,
+    categoryId: session.categoryId,
+    mode: session.mode,
+    total: session.total,
+    correctCount: session.correctCount,
+    wrongCount: session.wrongCount,
+    pendingCount: session.pendingCount,
+    createdAt: session.createdAt.toISOString(),
+  };
+}
+
+export async function listPracticeSessions(userId: string, examId: string) {
+  await requireOwnedExam(userId, examId);
+  const sessions = await prisma.practiceSession.findMany({
+    where: { userId, examId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  return sessions.map(practiceSessionSummary);
+}
+
+export async function getPracticeSession(userId: string, sessionId: string) {
+  const session = await prisma.practiceSession.findFirst({
+    where: { id: sessionId, userId },
+  });
+  if (!session) {
+    throw new ApiError(404, 'NOT_FOUND', '练习记录不存在');
+  }
+  const result = session.resultJson as unknown as {
+    results: Array<{
+      question: ReturnType<typeof questionDto>;
+      attempt: ReturnType<typeof attemptDto>;
+    }>;
+  };
+  return {
+    ...practiceSessionSummary(session),
+    results: result.results,
   };
 }

@@ -21,17 +21,17 @@ import * as api from '@/api/client';
 import type { Category, CategoryInput } from '@/types';
 
 function rateLabel(rate: number | null) {
-  return rate === null ? '未练习' : `${rate.toFixed(1)}%`;
+  return rate === null ? '未练习' : `${(rate * 100).toFixed(1)}%`;
 }
 
 function rateColor(rate: number | null) {
   if (rate === null) {
     return 'default';
   }
-  if (rate < 15) {
+  if (rate < 0.15) {
     return 'success';
   }
-  if (rate <= 25) {
+  if (rate <= 0.25) {
     return 'warning';
   }
   return 'danger';
@@ -327,6 +327,12 @@ export function ExamDetailPage() {
               </Tag>
             </div>
           </List.Item>
+          <List.Item
+            extra={<span className="text-lg text-[#9aa0a8]">›</span>}
+            onClick={() => navigate(`/practice-records/${examId}`)}
+          >
+            <span className="text-sm font-semibold">练习记录</span>
+          </List.Item>
         </List>
 
         {categoriesQuery.isLoading && (
@@ -415,6 +421,35 @@ export function ExamDetailPage() {
                   className="mt-3"
                 />
 
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    block
+                    size="small"
+                    fill="outline"
+                    color="primary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(
+                        `/practice/${examId}?categoryId=${encodeURIComponent(category.id)}`,
+                      );
+                    }}
+                  >
+                    练习
+                  </Button>
+                  <Button
+                    block
+                    size="small"
+                    fill="none"
+                    color="primary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openCreateCategory(category);
+                    }}
+                  >
+                    新增
+                  </Button>
+                </div>
+
                 {children.length > 0 && (
                   <List className="mt-3 !rounded-xl">
                     {children.map((child) => (
@@ -469,16 +504,6 @@ export function ExamDetailPage() {
                   </List>
                 )}
 
-                <Button
-                  block
-                  size="small"
-                  fill="none"
-                  color="primary"
-                  className="mt-2"
-                  onClick={() => openCreateCategory(category)}
-                >
-                  ＋ 新增子类目
-                </Button>
               </Card>
             );
           })}

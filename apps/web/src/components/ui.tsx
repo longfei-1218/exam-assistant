@@ -153,6 +153,7 @@ export function TextArea({ onChange, ...props }: TextAreaProps) {
 }
 
 type DatePickerProps = {
+  id?: string;
   value?: string | Date | null;
   onChange?: (value: string) => void;
   disabled?: boolean;
@@ -177,6 +178,7 @@ function toDateInputValue(value: DatePickerProps['value']) {
 }
 
 export function DatePicker({
+  id,
   value,
   onChange,
   disabled,
@@ -185,6 +187,7 @@ export function DatePicker({
 }: DatePickerProps) {
   return (
     <input
+      id={id}
       type="date"
       aria-label={title}
       value={toDateInputValue(value)}

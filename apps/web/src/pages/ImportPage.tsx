@@ -11,7 +11,9 @@ import { Toast } from '@/components/feedback';
 import {
   Button,
   Empty,
+  Input,
   NavBar,
+  Popup,
   Picker,
   ProgressBar,
   SpinLoading,
@@ -108,6 +110,8 @@ export function ImportPage() {
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [confirmResult, setConfirmResult] =
     useState<ConfirmImportResult | null>(null);
+  const [categoryPopupVisible, setCategoryPopupVisible] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const updateSelected = useCallback((index: number, checked: boolean) => {
     setSelected((current) => ({
       ...current,
@@ -125,6 +129,24 @@ export function ImportPage() {
     queryKey: ['categories', examId],
     queryFn: () => api.listCategories(examId),
     enabled: Boolean(examId),
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: () =>
+      api.createCategory({
+        examId,
+        parentId: null,
+        name: newCategoryName.trim(),
+      }),
+    onSuccess: async (category) => {
+      setCategoryId(category.id);
+      setNewCategoryName('');
+      setCategoryPopupVisible(false);
+      await queryClient.invalidateQueries({ queryKey: ['categories', examId] });
+    },
+    onError: (error) => {
+      Toast.show({ icon: 'fail', content: errorMessage(error) });
+    },
   });
 
   const createImportMutation = useMutation({
@@ -385,7 +407,16 @@ export function ImportPage() {
           </div>
 
           <div className="mb-4">
-            <div className="mb-2 text-xs text-[#9aa0a8]">目标类目</div>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-xs text-[#9aa0a8]">目标类目</div>
+              <button
+                type="button"
+                className="bg-transparent text-xs font-medium text-[#3d7eff]"
+                onClick={() => setCategoryPopupVisible(true)}
+              >
+                ＋ 新增类目
+              </button>
+            </div>
             <Picker
               columns={[categoryOptions]}
               value={categoryId ? [categoryId] : []}
@@ -412,6 +443,11 @@ export function ImportPage() {
                 </button>
               )}
             </Picker>
+            {categories.length === 0 && (
+              <p className="mt-2 text-xs text-[#c47a00]">
+                当前考试还没有类目，请先新增一个类目
+              </p>
+            )}
           </div>
 
           <TextArea
@@ -439,6 +475,42 @@ export function ImportPage() {
           </p>
         </div>
       </div>
+
+      <Popup
+        visible={categoryPopupVisible}
+        onMaskClick={() => setCategoryPopupVisible(false)}
+        position="bottom"
+        bodyStyle={{ borderRadius: '16px 16px 0 0', padding: '18px 16px 20px' }}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-[#26292e]">新增类目</h2>
+          <button
+            type="button"
+            className="bg-transparent text-xl text-[#9aa0a8]"
+            onClick={() => setCategoryPopupVisible(false)}
+          >
+            ×
+          </button>
+        </div>
+        <Input
+          value={newCategoryName}
+          onChange={setNewCategoryName}
+          placeholder="例如：教育心理学"
+          clearable
+          className="mt-2"
+        />
+        <Button
+          block
+          color="primary"
+          size="large"
+          className="mt-4"
+          loading={createCategoryMutation.isPending}
+          disabled={!newCategoryName.trim()}
+          onClick={() => createCategoryMutation.mutate()}
+        >
+          创建并选中
+        </Button>
+      </Popup>
     </main>
   );
 }

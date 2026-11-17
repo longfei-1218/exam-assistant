@@ -40,12 +40,13 @@ model User {
   avatarUrl    String?  @map("avatar_url") @db.Text
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  llmCredential UserLlmCredential?
-  refreshTokens RefreshToken[]
-  exams         Exam[]
-  categories    Category[]
-  attempts      Attempt[]
-  importJobs    ImportJob[]
+  llmCredential    UserLlmCredential?
+  refreshTokens    RefreshToken[]
+  exams            Exam[]
+  categories       Category[]
+  attempts         Attempt[]
+  importJobs       ImportJob[]
+  practiceSessions PracticeSession[]
 
   @@map("users")
 }
@@ -90,10 +91,11 @@ model Exam {
   examDate    DateTime? @map("exam_date") @db.Date
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categories Category[]
-  questions  Question[]
-  importJobs ImportJob[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories       Category[]
+  questions        Question[]
+  importJobs       ImportJob[]
+  practiceSessions PracticeSession[]
 
   @@index([userId, createdAt])
   @@map("exams")
@@ -107,13 +109,14 @@ model Category {
   name      String  @db.VarChar(80)
   sortOrder Int     @default(0) @map("sort_order")
 
-  exam       Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent     Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children   Category[]    @relation("CategoryTree")
-  questions  Question[]
-  stats      CategoryStat?
-  importJobs ImportJob[]   @relation("ImportTargetCategory")
+  exam             Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent           Category?         @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Category[]        @relation("CategoryTree")
+  questions        Question[]
+  stats            CategoryStat?
+  importJobs       ImportJob[]       @relation("ImportTargetCategory")
+  practiceSessions PracticeSession[] @relation("PracticeSessionCategory")
 
   @@index([examId])
   @@index([userId])
@@ -207,4 +210,25 @@ model CategoryStat {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@map("category_stats")
+}
+
+model PracticeSession {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  examId       String   @map("exam_id")
+  categoryId   String?  @map("category_id")
+  mode         String   @default("all") @db.VarChar(32)
+  total        Int
+  correctCount Int      @map("correct_count")
+  wrongCount   Int      @map("wrong_count")
+  pendingCount Int      @map("pending_count")
+  resultJson   Json     @map("result_json")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam     Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  category Category? @relation("PracticeSessionCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, examId, createdAt])
+  @@map("practice_sessions")
 }

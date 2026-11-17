@@ -136,7 +136,7 @@ function ExamFormPopup({ visible, exam, onClose }: ExamFormPopupProps) {
 
 export function ExamsPage() {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formVisible, setFormVisible] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -187,11 +187,6 @@ export function ExamsPage() {
     });
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate('/login', { replace: true });
-  }
-
   if (!user) {
     return null;
   }
@@ -220,17 +215,6 @@ export function ExamsPage() {
       </NavBar>
 
       <div className="mx-auto w-full max-w-[560px] px-4 pt-3">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <span className="text-sm text-[#9aa0a8]">考试列表</span>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="bg-transparent text-sm text-[#3d7eff]"
-          >
-            退出登录
-          </button>
-        </div>
-
         {examsQuery.isLoading && (
           <div className="grid min-h-[360px] place-items-center">
             <SpinLoading color="primary" />
@@ -307,9 +291,6 @@ export function ExamsPage() {
                     </Tag>
                     <Tag color="primary" fill="outline">
                       {exam.questionCount} 题
-                    </Tag>
-                    <Tag color="default" fill="outline">
-                      最近练习 {exam.lastPracticedAt ?? '暂无'}
                     </Tag>
                   </div>
 

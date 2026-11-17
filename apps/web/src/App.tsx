@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AuthProvider } from '@/auth/AuthContext';
 import { useAuth } from '@/auth/useAuth';
+import { ApiClientError } from '@/api/client';
 import { FeedbackBridge } from '@/components/FeedbackBridge';
 import { AuthPage } from '@/pages/AuthPage';
 import { CategoryQuestionsPage } from '@/pages/CategoryQuestionsPage';
@@ -12,6 +13,7 @@ import { ExamDetailPage } from '@/pages/ExamDetailPage';
 import { ExamsPage } from '@/pages/ExamsPage';
 import { ImportPage } from '@/pages/ImportPage';
 import { PracticePage } from '@/pages/PracticePage';
+import { PracticeRecordsPage } from '@/pages/PracticeRecordsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { WrongBookPage } from '@/pages/WrongBookPage';
 
@@ -79,6 +81,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/practice-records/:examId"
+        element={
+          <ProtectedRoute>
+            <PracticeRecordsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/import/:examId"
         element={
           <ProtectedRoute>
@@ -114,6 +124,17 @@ function App() {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
+            retry: (failureCount, error) => {
+              if (
+                error instanceof ApiClientError &&
+                error.statusCode >= 400 &&
+                error.statusCode < 500
+              ) {
+                return false;
+              }
+              return failureCount < 1;
+            },
+            retryDelay: 800,
           },
         },
       }),
