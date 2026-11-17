@@ -2,10 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node", "vitest/globals"],
-    "baseUrl": ".",
-    "paths": {
-      "@exam/shared": ["../../packages/shared/src/index.ts"]
-    }
+    "baseUrl": "."
   },
   "include": ["src", "test"]
 }

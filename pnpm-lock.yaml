@@ -35,9 +35,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@exam/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@fastify/cors':
         specifier: ^11.0.1
         version: 11.4.1
@@ -90,9 +87,6 @@ importers:
       '@ant-design/icons':
         specifier: ^6.3.4
         version: 6.3.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@exam/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@tanstack/react-query':
         specifier: ^5.81.5
         version: 5.107.1(@types/react@19.3.0)(react@19.3.1)
@@ -139,19 +133,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.5)(jiti@1.21.7)(tsx@4.23.15)(yaml@2.9.1)
-
-  packages/shared:
-    dependencies:
-      zod:
-        specifier: ^3.25.67
-        version: 3.25.76
-    devDependencies:
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
 packages:
 

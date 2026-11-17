@@ -12,7 +12,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@exam/shared": "workspace:*",
     "@fastify/cors": "^11.0.1",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "^7.10.1",
