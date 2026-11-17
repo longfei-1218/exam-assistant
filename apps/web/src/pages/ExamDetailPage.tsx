@@ -1,7 +1,6 @@
 import {
   Button,
   Card,
-  Dialog,
   Empty,
   Form,
   Grid,
@@ -12,8 +11,8 @@ import {
   ProgressBar,
   SpinLoading,
   Tag,
-  Toast,
-} from 'antd-mobile';
+} from '@/components/ui';
+import { Dialog, Toast } from '@/components/feedback';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

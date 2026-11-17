@@ -1,7 +1,25 @@
+export type LlmProvider = 'deepseek';
+
+export type LlmModel = 'deepseek-flash' | 'deepseek-pro';
+
+export type LlmConfig = {
+  provider: LlmProvider;
+  model: LlmModel;
+  apiToken: string;
+};
+
+export const DEFAULT_LLM_CONFIG: LlmConfig = {
+  provider: 'deepseek',
+  model: 'deepseek-flash',
+  apiToken: '',
+};
+
 export type AuthUser = {
   id: string;
   email: string;
   nickname: string;
+  avatarUrl: string | null;
+  llmConfig: LlmConfig;
 };
 
 export type AuthSession = {
@@ -49,6 +67,12 @@ export type LoginInput = {
   password: string;
 };
 
+export type UpdateProfileInput = {
+  nickname: string;
+  avatarUrl: string | null;
+  llmConfig: LlmConfig;
+};
+
 export type ExamInput = {
   name: string;
   description: string;
@@ -61,11 +85,7 @@ export type CategoryInput = {
   name: string;
 };
 
-export type QuestionType =
-  | 'single_choice'
-  | 'multi_choice'
-  | 'fill_blank'
-  | 'short_answer';
+export type QuestionType = 'single_choice' | 'multi_choice' | 'fill_blank' | 'short_answer';
 
 export type Question = {
   id: string;

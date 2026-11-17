@@ -1,20 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import { useState, type ReactNode } from 'react';
-import {
-  BrowserRouter,
-  Navigate,
-  Route,
-  Routes,
-} from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AuthProvider } from '@/auth/AuthContext';
 import { useAuth } from '@/auth/useAuth';
+import { FeedbackBridge } from '@/components/FeedbackBridge';
 import { AuthPage } from '@/pages/AuthPage';
 import { CategoryQuestionsPage } from '@/pages/CategoryQuestionsPage';
 import { ExamDetailPage } from '@/pages/ExamDetailPage';
 import { ExamsPage } from '@/pages/ExamsPage';
 import { ImportPage } from '@/pages/ImportPage';
 import { PracticePage } from '@/pages/PracticePage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { WrongBookPage } from '@/pages/WrongBookPage';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -96,6 +94,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -114,13 +120,29 @@ function App() {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#3d7eff',
+          colorText: '#26292e',
+          colorBgLayout: '#f5f6f8',
+          borderRadius: 12,
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+        },
+      }}
+    >
+      <AntdApp>
+        <FeedbackBridge />
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </AuthProvider>
+        </QueryClientProvider>
+      </AntdApp>
+    </ConfigProvider>
   );
 }
 

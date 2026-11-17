@@ -8,15 +8,20 @@ import type {
   Exam,
   ExamInput,
   LoginInput,
+  LlmConfig,
   PracticeMode,
   Question,
   QuestionInput,
   RegisterInput,
+  UpdateProfileInput,
   WrongBookItem,
 } from '@/types';
+import { DEFAULT_LLM_CONFIG } from '@/types';
 
-type StoredUser = AuthUser & {
+type StoredUser = Omit<AuthUser, 'avatarUrl' | 'llmConfig'> & {
   password: string;
+  avatarUrl?: string | null;
+  llmConfig?: Partial<LlmConfig>;
 };
 
 type StoredExam = {
@@ -100,7 +105,11 @@ function readSession(): AuthSession | null {
   }
 
   try {
-    return JSON.parse(raw) as AuthSession;
+    const session = JSON.parse(raw) as AuthSession;
+    return {
+      ...session,
+      user: normalizeUserProfile(session.user),
+    };
   } catch {
     return null;
   }
@@ -114,12 +123,34 @@ function clearSession() {
   window.localStorage.removeItem(SESSION_KEY);
 }
 
-function publicUser(user: StoredUser): AuthUser {
+function normalizeUserProfile(user: {
+  id: string;
+  email: string;
+  nickname: string;
+  avatarUrl?: string | null;
+  llmConfig?: Partial<LlmConfig>;
+}): AuthUser {
+  const model = user.llmConfig?.model;
+
   return {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
+    avatarUrl: user.avatarUrl ?? null,
+    llmConfig: {
+      provider:
+        user.llmConfig?.provider === 'deepseek'
+          ? user.llmConfig.provider
+          : DEFAULT_LLM_CONFIG.provider,
+      model:
+        model === 'deepseek-pro' || model === 'deepseek-flash' ? model : DEFAULT_LLM_CONFIG.model,
+      apiToken: user.llmConfig?.apiToken ?? DEFAULT_LLM_CONFIG.apiToken,
+    },
   };
+}
+
+function publicUser(user: StoredUser): AuthUser {
+  return normalizeUserProfile(user);
 }
 
 function currentStoredUser(): StoredUser | null {
@@ -162,10 +193,7 @@ function normalizeStemHash(stem: string) {
     .replace(/[，。！？、：；""''（）【】,.!?;:'"()]/g, '');
 }
 
-function getCategorySubtreeIds(
-  database: Database,
-  categoryId: string,
-): string[] {
+function getCategorySubtreeIds(database: Database, categoryId: string): string[] {
   const childIds = database.categories
     .filter((category) => category.parentId === categoryId)
     .map((category) => category.id);
@@ -180,22 +208,16 @@ function computeCategoryStats(
   const categoryIds = new Set(getCategorySubtreeIds(database, category.id));
   const questionIds = database.questions
     .filter(
-      (question) =>
-        question.examId === category.examId &&
-        categoryIds.has(question.categoryId),
+      (question) => question.examId === category.examId && categoryIds.has(question.categoryId),
     )
     .map((question) => question.id);
   const attempts = database.attempts.filter(
     (attempt) => attempt.userId === userId && questionIds.includes(attempt.questionId),
   );
   const passed = new Set(
-    attempts
-      .filter((attempt) => attempt.isCorrect === true)
-      .map((attempt) => attempt.questionId),
+    attempts.filter((attempt) => attempt.isCorrect === true).map((attempt) => attempt.questionId),
   ).size;
-  const errorCount = attempts.filter(
-    (attempt) => attempt.isCorrect === false,
-  ).length;
+  const errorCount = attempts.filter((attempt) => attempt.isCorrect === false).length;
 
   return {
     total: questionIds.length,
@@ -206,27 +228,16 @@ function computeCategoryStats(
   };
 }
 
-function toExam(
-  exam: StoredExam,
-  database: Database,
-  userId: string,
-): Exam {
-  const ownCategories = database.categories.filter(
-    (category) => category.examId === exam.id,
-  );
+function toExam(exam: StoredExam, database: Database, userId: string): Exam {
+  const ownCategories = database.categories.filter((category) => category.examId === exam.id);
   const topLevelCount = ownCategories.filter((category) => category.parentId === null).length;
-  const questions = database.questions.filter(
-    (question) => question.examId === exam.id,
-  );
+  const questions = database.questions.filter((question) => question.examId === exam.id);
   const questionIds = new Set(questions.map((question) => question.id));
   const attempts = database.attempts.filter(
-    (attempt) =>
-      attempt.userId === userId && questionIds.has(attempt.questionId),
+    (attempt) => attempt.userId === userId && questionIds.has(attempt.questionId),
   );
   const passed = new Set(
-    attempts
-      .filter((attempt) => attempt.isCorrect === true)
-      .map((attempt) => attempt.questionId),
+    attempts.filter((attempt) => attempt.isCorrect === true).map((attempt) => attempt.questionId),
   ).size;
   const lastPracticedAt = attempts.reduce<string | null>(
     (latest, attempt) => (!latest || attempt.createdAt > latest ? attempt.createdAt : latest),
@@ -246,11 +257,7 @@ function toExam(
   };
 }
 
-function toCategory(
-  category: StoredCategory,
-  database: Database,
-  userId: string,
-): Category {
+function toCategory(category: StoredCategory, database: Database, userId: string): Category {
   return {
     ...category,
     stats: computeCategoryStats(database, category, userId),
@@ -300,6 +307,50 @@ export async function logout(): Promise<void> {
   clearSession();
 }
 
+export async function updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
+  await delay();
+  const user = requireCurrentUser();
+  const database = readDatabase();
+  const storedUser = database.users.find((item) => item.id === user.id);
+
+  if (!storedUser) {
+    throw new Error('用户不存在');
+  }
+
+  const nickname = input.nickname.trim();
+  if (!nickname) {
+    throw new Error('昵称不能为空');
+  }
+
+  if (input.llmConfig.provider !== 'deepseek') {
+    throw new Error('暂不支持该模型供应商');
+  }
+
+  if (input.llmConfig.model !== 'deepseek-flash' && input.llmConfig.model !== 'deepseek-pro') {
+    throw new Error('暂不支持该模型');
+  }
+
+  storedUser.nickname = nickname;
+  storedUser.avatarUrl = input.avatarUrl;
+  storedUser.llmConfig = {
+    provider: input.llmConfig.provider,
+    model: input.llmConfig.model,
+    apiToken: input.llmConfig.apiToken.trim(),
+  };
+
+  writeDatabase(database);
+
+  const session = readSession();
+  if (session) {
+    writeSession({
+      ...session,
+      user: publicUser(storedUser),
+    });
+  }
+
+  return publicUser(storedUser);
+}
+
 export function getStoredSession(): AuthSession | null {
   return readSession();
 }
@@ -319,9 +370,7 @@ export async function getExam(examId: string): Promise<Exam> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === examId && item.userId === user.id);
 
   if (!exam) {
     throw new Error('考试不存在');
@@ -354,16 +403,11 @@ export async function createExam(input: ExamInput): Promise<Exam> {
   return toExam(exam, database, user.id);
 }
 
-export async function updateExam(
-  examId: string,
-  input: ExamInput,
-): Promise<Exam> {
+export async function updateExam(examId: string, input: ExamInput): Promise<Exam> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === examId && item.userId === user.id);
 
   if (!exam) {
     throw new Error('考试不存在');
@@ -385,9 +429,7 @@ export async function deleteExam(examId: string): Promise<void> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === examId && item.userId === user.id);
 
   if (!exam) {
     throw new Error('考试不存在');
@@ -398,12 +440,8 @@ export async function deleteExam(examId: string): Promise<void> {
     .map((question) => question.id);
 
   database.exams = database.exams.filter((item) => item.id !== examId);
-  database.categories = database.categories.filter(
-    (category) => category.examId !== examId,
-  );
-  database.questions = database.questions.filter(
-    (question) => question.examId !== examId,
-  );
+  database.categories = database.categories.filter((category) => category.examId !== examId);
+  database.questions = database.questions.filter((question) => question.examId !== examId);
   database.attempts = database.attempts.filter(
     (attempt) => !questionIds.includes(attempt.questionId),
   );
@@ -414,9 +452,7 @@ export async function listCategories(examId: string): Promise<Category[]> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === examId && item.userId === user.id);
 
   if (!exam) {
     throw new Error('考试不存在');
@@ -438,9 +474,7 @@ export async function createCategory(input: CategoryInput): Promise<Category> {
     throw new Error('类目名称不能为空');
   }
 
-  const exam = database.exams.find(
-    (item) => item.id === input.examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === input.examId && item.userId === user.id);
   if (!exam) {
     throw new Error('考试不存在');
   }
@@ -459,11 +493,9 @@ export async function createCategory(input: CategoryInput): Promise<Category> {
   }
 
   const siblings = database.categories.filter(
-    (category) =>
-      category.examId === input.examId && category.parentId === input.parentId,
+    (category) => category.examId === input.examId && category.parentId === input.parentId,
   );
-  const sortOrder =
-    siblings.reduce((max, category) => Math.max(max, category.sortOrder), 0) + 1;
+  const sortOrder = siblings.reduce((max, category) => Math.max(max, category.sortOrder), 0) + 1;
 
   const category: StoredCategory = {
     id: createId('category'),
@@ -566,29 +598,18 @@ function validateQuestionInput(input: QuestionInput) {
     }
   }
 
-  if (
-    (input.type === 'fill_blank' || input.type === 'short_answer') &&
-    !input.answer.trim()
-  ) {
+  if ((input.type === 'fill_blank' || input.type === 'short_answer') && !input.answer.trim()) {
     throw new Error('请输入参考答案');
   }
 }
 
-function findOwnQuestion(
-  database: Database,
-  questionId: string,
-  userId: string,
-) {
-  const question = database.questions.find(
-    (item) => item.id === questionId,
-  );
+function findOwnQuestion(database: Database, questionId: string, userId: string) {
+  const question = database.questions.find((item) => item.id === questionId);
   if (!question) {
     throw new Error('题目不存在');
   }
 
-  const exam = database.exams.find(
-    (item) => item.id === question.examId && item.userId === userId,
-  );
+  const exam = database.exams.find((item) => item.id === question.examId && item.userId === userId);
   if (!exam) {
     throw new Error('题目不存在');
   }
@@ -596,12 +617,7 @@ function findOwnQuestion(
   return question;
 }
 
-function findOwnCategory(
-  database: Database,
-  categoryId: string,
-  examId: string,
-  userId: string,
-) {
+function findOwnCategory(database: Database, categoryId: string, examId: string, userId: string) {
   const category = database.categories.find(
     (item) => item.id === categoryId && item.examId === examId && item.userId === userId,
   );
@@ -618,9 +634,7 @@ function normalizeAnswer(answer: string) {
 function parseMultiAnswer(answer: string) {
   try {
     const parsed = JSON.parse(answer) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.map((item) => String(item).toUpperCase()).sort()
-      : [];
+    return Array.isArray(parsed) ? parsed.map((item) => String(item).toUpperCase()).sort() : [];
   } catch {
     return [];
   }
@@ -644,10 +658,7 @@ function judgeAnswer(question: Question, answer: string): boolean | null {
   return null;
 }
 
-function getWrongBookItems(
-  database: Database,
-  userId: string,
-): WrongBookItem[] {
+function getWrongBookItems(database: Database, userId: string): WrongBookItem[] {
   const questionIds = database.questions
     .filter((question) => {
       const exam = database.exams.find(
@@ -657,10 +668,7 @@ function getWrongBookItems(
     })
     .map((question) => question.id);
   const attemptsByQuestion = database.attempts
-    .filter(
-      (attempt) =>
-        attempt.userId === userId && questionIds.includes(attempt.questionId),
-    )
+    .filter((attempt) => attempt.userId === userId && questionIds.includes(attempt.questionId))
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 
   const items: WrongBookItem[] = [];
@@ -671,9 +679,7 @@ function getWrongBookItems(
       continue;
     }
 
-    const attempts = attemptsByQuestion.filter(
-      (attempt) => attempt.questionId === questionId,
-    );
+    const attempts = attemptsByQuestion.filter((attempt) => attempt.questionId === questionId);
     const latest = attempts.at(-1);
     if (!latest || latest.isCorrect === null) {
       continue;
@@ -685,9 +691,7 @@ function getWrongBookItems(
     }
 
     const exam = database.exams.find((item) => item.id === question.examId);
-    const category = database.categories.find(
-      (item) => item.id === question.categoryId,
-    );
+    const category = database.categories.find((item) => item.id === question.categoryId);
 
     items.push({
       question,
@@ -701,21 +705,15 @@ function getWrongBookItems(
 
   return items.sort(
     (left, right) =>
-      right.wrongCount - left.wrongCount ||
-      right.lastAttemptAt.localeCompare(left.lastAttemptAt),
+      right.wrongCount - left.wrongCount || right.lastAttemptAt.localeCompare(left.lastAttemptAt),
   );
 }
 
-export async function listQuestions(
-  examId: string,
-  categoryId?: string,
-): Promise<Question[]> {
+export async function listQuestions(examId: string, categoryId?: string): Promise<Question[]> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === examId && item.userId === user.id);
   if (!exam) {
     throw new Error('考试不存在');
   }
@@ -724,15 +722,12 @@ export async function listQuestions(
     findOwnCategory(database, categoryId, examId, user.id);
   }
 
-  const categoryIds = categoryId
-    ? new Set(getCategorySubtreeIds(database, categoryId))
-    : null;
+  const categoryIds = categoryId ? new Set(getCategorySubtreeIds(database, categoryId)) : null;
 
   return database.questions
     .filter(
       (question) =>
-        question.examId === examId &&
-        (!categoryIds || categoryIds.has(question.categoryId)),
+        question.examId === examId && (!categoryIds || categoryIds.has(question.categoryId)),
     )
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 }
@@ -741,9 +736,7 @@ export async function createQuestion(input: QuestionInput): Promise<Question> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
-  const exam = database.exams.find(
-    (item) => item.id === input.examId && item.userId === user.id,
-  );
+  const exam = database.exams.find((item) => item.id === input.examId && item.userId === user.id);
   if (!exam) {
     throw new Error('考试不存在');
   }
@@ -753,8 +746,7 @@ export async function createQuestion(input: QuestionInput): Promise<Question> {
   const stemHash = normalizeStemHash(input.stem);
   if (
     database.questions.some(
-      (question) =>
-        question.examId === input.examId && question.stemHash === stemHash,
+      (question) => question.examId === input.examId && question.stemHash === stemHash,
     )
   ) {
     throw new Error('该考试下已存在相同题干');
@@ -778,10 +770,7 @@ export async function createQuestion(input: QuestionInput): Promise<Question> {
   return question;
 }
 
-export async function updateQuestion(
-  questionId: string,
-  input: QuestionInput,
-): Promise<Question> {
+export async function updateQuestion(questionId: string, input: QuestionInput): Promise<Question> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();
@@ -793,9 +782,7 @@ export async function updateQuestion(
   if (
     database.questions.some(
       (item) =>
-        item.examId === input.examId &&
-        item.id !== questionId &&
-        item.stemHash === stemHash,
+        item.examId === input.examId && item.id !== questionId && item.stemHash === stemHash,
     )
   ) {
     throw new Error('该考试下已存在相同题干');
@@ -819,12 +806,8 @@ export async function deleteQuestion(questionId: string): Promise<void> {
   const database = readDatabase();
   findOwnQuestion(database, questionId, user.id);
 
-  database.questions = database.questions.filter(
-    (question) => question.id !== questionId,
-  );
-  database.attempts = database.attempts.filter(
-    (attempt) => attempt.questionId !== questionId,
-  );
+  database.questions = database.questions.filter((question) => question.id !== questionId);
+  database.attempts = database.attempts.filter((attempt) => attempt.questionId !== questionId);
   writeDatabase(database);
 }
 
@@ -853,10 +836,7 @@ export async function listPracticeQuestions(
   return listQuestions(examId, categoryId);
 }
 
-export async function submitAttempt(
-  questionId: string,
-  answer: string,
-): Promise<Attempt> {
+export async function submitAttempt(questionId: string, answer: string): Promise<Attempt> {
   await delay();
   const user = requireCurrentUser();
   const database = readDatabase();

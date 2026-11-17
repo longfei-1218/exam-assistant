@@ -2,7 +2,6 @@ import {
   Button,
   Card,
   DatePicker,
-  Dialog,
   Empty,
   Form,
   Input,
@@ -12,14 +11,15 @@ import {
   SpinLoading,
   Tag,
   TextArea,
-  Toast,
-} from 'antd-mobile';
+} from '@/components/ui';
+import { Dialog, Toast } from '@/components/feedback';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import * as api from '@/api/client';
 import { useAuth } from '@/auth/useAuth';
+import { UserAvatar } from '@/components/UserAvatar';
 import type { Exam, ExamInput } from '@/types';
 
 type ExamFormValues = {
@@ -98,11 +98,7 @@ function ExamFormPopup({ visible, exam, onClose }: ExamFormPopupProps) {
           <h2 className="text-base font-semibold text-[#26292e]">
             {exam ? '编辑考试' : '新建考试'}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-transparent text-xl text-[#9aa0a8]"
-          >
+          <button type="button" onClick={onClose} className="bg-transparent text-xl text-[#9aa0a8]">
             ×
           </button>
         </div>
@@ -112,13 +108,7 @@ function ExamFormPopup({ visible, exam, onClose }: ExamFormPopupProps) {
           layout="vertical"
           onFinish={handleFinish}
           footer={
-            <Button
-              block
-              type="submit"
-              color="primary"
-              size="large"
-              loading={saveExam.isPending}
-            >
+            <Button block type="submit" color="primary" size="large" loading={saveExam.isPending}>
               {exam ? '保存修改' : '创建考试'}
             </Button>
           }
@@ -136,12 +126,7 @@ function ExamFormPopup({ visible, exam, onClose }: ExamFormPopupProps) {
           </Form.Item>
 
           <Form.Item name="description" label="描述（选填）">
-            <TextArea
-              placeholder="这个考试的目标、范围或提醒"
-              rows={3}
-              showCount
-              maxLength={200}
-            />
+            <TextArea placeholder="这个考试的目标、范围或提醒" rows={3} showCount maxLength={200} />
           </Form.Item>
         </Form>
       </div>
@@ -151,7 +136,7 @@ function ExamFormPopup({ visible, exam, onClose }: ExamFormPopupProps) {
 
 export function ExamsPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const queryClient = useQueryClient();
   const [formVisible, setFormVisible] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -207,19 +192,28 @@ export function ExamsPage() {
     navigate('/login', { replace: true });
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f6f8] pb-8">
       <NavBar
         back={null}
         right={
-          <Button
-            color="primary"
-            fill="solid"
-            size="small"
-            onClick={openCreateModal}
-          >
-            ＋ 新建
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button color="primary" fill="solid" size="small" onClick={openCreateModal}>
+              ＋ 新建
+            </Button>
+            <button
+              type="button"
+              aria-label="个人设置"
+              className="grid h-9 w-9 place-items-center rounded-full bg-transparent"
+              onClick={() => navigate('/settings')}
+            >
+              <UserAvatar user={user} size={32} />
+            </button>
+          </div>
         }
       >
         备考助手
@@ -246,9 +240,7 @@ export function ExamsPage() {
         {examsQuery.isError && (
           <Empty
             description={
-              examsQuery.error instanceof Error
-                ? examsQuery.error.message
-                : '考试列表加载失败'
+              examsQuery.error instanceof Error ? examsQuery.error.message : '考试列表加载失败'
             }
           />
         )}
@@ -256,12 +248,7 @@ export function ExamsPage() {
         {examsQuery.isSuccess && examsQuery.data.length === 0 && (
           <div className="rounded-2xl bg-white px-5 py-12 text-center">
             <Empty description="还没有考试，创建第一个开始备考" />
-            <Button
-              block
-              color="primary"
-              size="large"
-              onClick={openCreateModal}
-            >
+            <Button block color="primary" size="large" onClick={openCreateModal}>
               新建考试
             </Button>
           </div>
@@ -283,9 +270,7 @@ export function ExamsPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-base font-semibold text-[#26292e]">
-                        {exam.name}
-                      </h2>
+                      <h2 className="text-base font-semibold text-[#26292e]">{exam.name}</h2>
                       <p className="mt-1 truncate text-xs text-[#9aa0a8]">
                         {exam.description || '暂无描述'}
                       </p>
@@ -333,9 +318,7 @@ export function ExamsPage() {
                       <span>
                         已过关 {exam.passedCount} / {exam.questionCount}
                       </span>
-                      <span className="font-medium text-[#26292e]">
-                        {passRate}%
-                      </span>
+                      <span className="font-medium text-[#26292e]">{passRate}%</span>
                     </div>
                     <ProgressBar percent={passRate} />
                   </div>
@@ -373,11 +356,7 @@ export function ExamsPage() {
         )}
       </div>
 
-      <ExamFormPopup
-        visible={formVisible}
-        exam={editingExam}
-        onClose={closeModal}
-      />
+      <ExamFormPopup visible={formVisible} exam={editingExam} onClose={closeModal} />
     </main>
   );
 }

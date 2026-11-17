@@ -1,18 +1,11 @@
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 import * as api from '@/api/client';
-import type { AuthSession, LoginInput, RegisterInput } from '@/types';
+import type { AuthSession, LoginInput, RegisterInput, UpdateProfileInput } from '@/types';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() =>
-    api.getStoredSession(),
-  );
+  const [session, setSession] = useState<AuthSession | null>(() => api.getStoredSession());
 
   const login = useCallback(async (input: LoginInput) => {
     const nextSession = await api.login(input);
@@ -22,6 +15,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (input: RegisterInput) => {
     const nextSession = await api.register(input);
     setSession(nextSession);
+  }, []);
+
+  const updateProfile = useCallback(async (input: UpdateProfileInput) => {
+    const user = await api.updateProfile(input);
+    setSession((currentSession) =>
+      currentSession
+        ? {
+            ...currentSession,
+            user,
+          }
+        : currentSession,
+    );
   }, []);
 
   const logout = useCallback(async () => {
@@ -35,9 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status: session ? 'authenticated' : 'unauthenticated',
       login,
       register,
+      updateProfile,
       logout,
     }),
-    [login, logout, register, session],
+    [login, logout, register, session, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
