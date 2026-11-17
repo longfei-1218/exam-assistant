@@ -16,6 +16,7 @@ enum QuestionType {
   single_choice
   multi_choice
   fill_blank
+  true_false
   short_answer
 
   @@map("question_type")

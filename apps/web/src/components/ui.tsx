@@ -571,10 +571,14 @@ function TabsRoot({
       (child): child is React.ReactElement<TabItemProps> =>
         isValidElement(child),
     )
-    .map((child) => ({
-      key: String(child.key ?? child.props.title),
-      label: child.props.title,
-    }));
+    .map((child) => {
+      const rawKey = String(child.key ?? child.props.title);
+
+      return {
+        key: rawKey.startsWith('.$') ? rawKey.slice(2) : rawKey,
+        label: child.props.title,
+      };
+    });
 
   return (
     <AntTabs

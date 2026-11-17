@@ -17,7 +17,7 @@ $PASSWORD = "StrongPass123"
 ```powershell
 curl.exe -i -X POST "$BASE_URL/api/auth/register" `
   -H "Content-Type: application/json" `
-  -d '{"email":"curl-demo@example.com","password":"StrongPass123","nickname":"CurlUser"}'
+  -d '{\"email\":\"curl-demo@example.com\",\"password\":\"StrongPass123\",\"nickname\":\"CurlUser\"}'
 ```
 
 成功返回 `200`：
@@ -54,7 +54,7 @@ $REFRESH_TOKEN = "<这里替换为响应中的 refreshToken>"
 ```powershell
 curl.exe -i -X POST "$BASE_URL/api/auth/login" `
   -H "Content-Type: application/json" `
-  -d '{"email":"curl-demo@example.com","password":"StrongPass123"}'
+  -d '{\"email\":\"curl-demo@example.com\",\"password\":\"StrongPass123\"}'
 ```
 
 成功后返回新的 `accessToken` 和 `refreshToken`。
@@ -64,7 +64,7 @@ curl.exe -i -X POST "$BASE_URL/api/auth/login" `
 ```powershell
 curl.exe -i -X POST "$BASE_URL/api/auth/login" `
   -H "Content-Type: application/json" `
-  -d '{"email":"curl-demo@example.com","password":"WrongPassword123"}'
+  -d '{\"email\":\"curl-demo@example.com\",\"password\":\"WrongPassword123\"}'
 ```
 
 预期返回 `401 INVALID_CREDENTIALS`。
@@ -84,7 +84,7 @@ curl.exe -i -X GET "$BASE_URL/api/auth/me" `
 curl.exe -i -X PATCH "$BASE_URL/api/auth/me" `
   -H "Authorization: Bearer $ACCESS_TOKEN" `
   -H "Content-Type: application/json" `
-  -d '{"nickname":"UpdatedCurlUser","avatarUrl":null,"llmConfig":{"provider":"deepseek","model":"deepseek-chat","apiToken":"sk-curl-demo-1234"}}'
+  -d '{\"nickname\":\"UpdatedCurlUser\",\"avatarUrl\":null,\"llmConfig\":{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\",\"apiToken\":\"sk-curl-demo-1234\"}}'
 ```
 
 成功返回 `200`，其中：
@@ -100,7 +100,7 @@ curl.exe -i -X PATCH "$BASE_URL/api/auth/me" `
 curl.exe -i -X PATCH "$BASE_URL/api/auth/me" `
   -H "Authorization: Bearer $ACCESS_TOKEN" `
   -H "Content-Type: application/json" `
-  -d '{"llmConfig":{"provider":"deepseek","model":"deepseek-chat","apiToken":null}}'
+  -d '{\"llmConfig\":{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\",\"apiToken\":null}}'
 ```
 
 ## 5. 刷新登录状态
@@ -108,7 +108,7 @@ curl.exe -i -X PATCH "$BASE_URL/api/auth/me" `
 ```powershell
 curl.exe -i -X POST "$BASE_URL/api/auth/refresh" `
   -H "Content-Type: application/json" `
-  -d '{"refreshToken":"<这里替换为当前 refreshToken>"}'
+  -d '{\"refreshToken\":\"<这里替换为当前 refreshToken>\"}'
 ```
 
 建议使用变量：

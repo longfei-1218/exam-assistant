@@ -4,6 +4,7 @@ export const questionTypeSchema = z.enum([
   'single_choice',
   'multi_choice',
   'fill_blank',
+  'true_false',
   'short_answer',
 ]);
 

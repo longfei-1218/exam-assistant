@@ -6,6 +6,7 @@ import {
   NavBar,
   Picker,
   Popup,
+  Selector,
   SpinLoading,
   Tag,
   TextArea,
@@ -22,14 +23,16 @@ const questionTypeOptions: Array<{ label: string; value: QuestionType }> = [
   { label: '单选', value: 'single_choice' },
   { label: '多选', value: 'multi_choice' },
   { label: '填空', value: 'fill_blank' },
-  { label: '简答', value: 'short_answer' },
+  { label: '判断', value: 'true_false' },
+  { label: '主观题', value: 'short_answer' },
 ];
 
 const questionTypeLabels: Record<QuestionType, string> = {
   single_choice: '单选',
   multi_choice: '多选',
   fill_blank: '填空',
-  short_answer: '简答',
+  true_false: '判断',
+  short_answer: '主观题',
 };
 
 function isChoiceType(type: QuestionType) {
@@ -102,12 +105,15 @@ function QuestionFormPopup({
   }, [question, visible]);
 
   function handleSave() {
-    const options = isChoiceType(type)
-      ? optionsText
-          .split('\n')
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [];
+    const options =
+      type === 'true_false'
+        ? ['正确', '错误']
+        : isChoiceType(type)
+          ? optionsText
+              .split('\n')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [];
 
     saveQuestion.mutate({
       examId,
@@ -194,9 +200,20 @@ function QuestionFormPopup({
                 ? '答案（选项字母，如 A）'
                 : type === 'multi_choice'
                   ? '答案（字母数组，如 ["A","C"]）'
+                  : type === 'true_false'
+                    ? '答案（正确 / 错误）'
                   : '参考答案'}
             </span>
-            {type === 'fill_blank' || type === 'short_answer' ? (
+            {type === 'true_false' ? (
+              <Selector
+                options={[
+                  { label: '正确', value: '正确' },
+                  { label: '错误', value: '错误' },
+                ]}
+                value={answer ? [answer] : []}
+                onChange={(value) => setAnswer(value[0] ?? '')}
+              />
+            ) : type === 'fill_blank' || type === 'short_answer' ? (
               <TextArea
                 value={answer}
                 onChange={setAnswer}

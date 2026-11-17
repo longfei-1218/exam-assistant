@@ -91,7 +91,12 @@ export type CategoryInput = {
   name: string;
 };
 
-export type QuestionType = 'single_choice' | 'multi_choice' | 'fill_blank' | 'short_answer';
+export type QuestionType =
+  | 'single_choice'
+  | 'multi_choice'
+  | 'fill_blank'
+  | 'true_false'
+  | 'short_answer';
 
 export type Question = {
   id: string;
@@ -135,3 +140,86 @@ export type WrongBookItem = {
 };
 
 export type PracticeMode = 'all' | 'wrong' | 'category';
+
+export type PracticeAnswerInput = {
+  questionId: string;
+  answer: string;
+  durationMs?: number;
+};
+
+export type PracticeQuestionResult = {
+  question: Question;
+  attempt: Attempt;
+};
+
+export type PracticeSubmitResult = {
+  total: number;
+  correctCount: number;
+  wrongCount: number;
+  pendingCount: number;
+  results: PracticeQuestionResult[];
+};
+
+export type ImportStatus =
+  | 'queued'
+  | 'processing'
+  | 'ready'
+  | 'confirmed'
+  | 'failed';
+
+export type ImportProgress = {
+  totalChunks: number;
+  doneChunks: number;
+  questionCount: number;
+};
+
+export type ImportDraftQuestion = {
+  type: QuestionType;
+  stem: string;
+  options: string[];
+  answer: string;
+  explanation: string;
+  categoryId: string;
+  categoryHint: string;
+  confidence: number;
+  duplicate: boolean;
+};
+
+export type ImportJob = {
+  id: string;
+  userId: string;
+  examId: string;
+  targetCategoryId: string | null;
+  status: ImportStatus;
+  progressJson: ImportProgress;
+  resultJson: {
+    questions: ImportDraftQuestion[];
+  } | null;
+  error: string | null;
+  promptVersion: string | null;
+  model: string | null;
+  tokenUsage: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateImportInput = {
+  examId: string;
+  targetCategoryId: string | null;
+  rawText: string;
+};
+
+export type ConfirmImportInput = {
+  questions: Array<
+    ImportDraftQuestion & {
+      selected: boolean;
+    }
+  >;
+  createCategories?: string[];
+};
+
+export type ConfirmImportResult = {
+  imported: number;
+  skipped: number;
+  questionIds: string[];
+};

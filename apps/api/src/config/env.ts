@@ -14,7 +14,9 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1),
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('7d'),
-  WEB_ORIGIN: z.string().default('http://localhost:5173'),
+  WEB_ORIGIN: z
+    .string()
+    .default('http://127.0.0.1:5173,http://localhost:5173'),
   LLM_PROVIDER: z.string().default('deepseek'),
   LLM_MODEL: z.string().default('deepseek-chat'),
   LLM_TOKEN_ENCRYPTION_KEY: z.string().optional(),
