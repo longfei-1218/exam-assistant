@@ -39,7 +39,7 @@ export function SettingsPage() {
     user?.llmConfig.provider ?? DEFAULT_LLM_CONFIG.provider,
   );
   const [model, setModel] = useState<LlmModel>(user?.llmConfig.model ?? DEFAULT_LLM_CONFIG.model);
-  const [apiToken, setApiToken] = useState(user?.llmConfig.apiToken ?? DEFAULT_LLM_CONFIG.apiToken);
+  const [apiToken, setApiToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -52,7 +52,7 @@ export function SettingsPage() {
     setAvatarUrl(user.avatarUrl);
     setProvider(user.llmConfig.provider);
     setModel(user.llmConfig.model);
-    setApiToken(user.llmConfig.apiToken);
+    setApiToken('');
   }, [user]);
 
   if (!user) {
@@ -116,7 +116,7 @@ export function SettingsPage() {
         llmConfig: {
           provider,
           model,
-          apiToken: apiToken.trim(),
+          apiToken: apiToken.trim() || undefined,
         },
       });
       Toast.show({ icon: 'success', content: '设置已保存' });
@@ -235,6 +235,7 @@ export function SettingsPage() {
               className="h-11 w-full appearance-none rounded-xl border border-[#eceef1] bg-[#f8f9fb] px-3 pr-10 text-sm text-[#26292e] outline-none focus:border-[#3d7eff]"
             >
               <option value="deepseek-flash">DeepSeek Flash</option>
+              <option value="deepseek-chat">DeepSeek Chat</option>
               <option value="deepseek-pro">DeepSeek Pro</option>
             </select>
             <DownOutlined
@@ -252,7 +253,11 @@ export function SettingsPage() {
               type={showToken ? 'text' : 'password'}
               value={apiToken}
               onChange={setApiToken}
-              placeholder="输入或粘贴 API Token"
+              placeholder={
+                user.llmConfig.apiTokenMasked
+                  ? `已配置：${user.llmConfig.apiTokenMasked}`
+                  : '输入或粘贴 API Token'
+              }
               clearable
               className="min-w-0 flex-1"
               style={{ '--font-size': '14px' } as CSSProperties}

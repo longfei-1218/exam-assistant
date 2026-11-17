@@ -1,0 +1,209 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum QuestionType {
+  single_choice
+  multi_choice
+  fill_blank
+  short_answer
+
+  @@map("question_type")
+}
+
+enum ImportStatus {
+  queued
+  processing
+  ready
+  confirmed
+  failed
+
+  @@map("import_status")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(320)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  nickname     String   @db.VarChar(60)
+  avatarUrl    String?  @map("avatar_url") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  llmCredential UserLlmCredential?
+  refreshTokens RefreshToken[]
+  exams         Exam[]
+  categories    Category[]
+  attempts      Attempt[]
+  importJobs    ImportJob[]
+
+  @@map("users")
+}
+
+model UserLlmCredential {
+  id              String   @id @default(cuid())
+  userId          String   @unique @map("user_id")
+  provider        String   @default("deepseek") @db.VarChar(32)
+  model           String   @default("deepseek-chat") @db.VarChar(64)
+  tokenCiphertext String?  @map("token_ciphertext") @db.Text
+  tokenIv         String?  @map("token_iv") @db.VarChar(64)
+  tokenTag        String?  @map("token_tag") @db.VarChar(64)
+  tokenMasked     String?  @map("token_masked") @db.VarChar(64)
+  configured      Boolean  @default(false)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_llm_credentials")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Exam {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  name        String    @db.VarChar(60)
+  description String    @default("") @db.Text
+  examDate    DateTime? @map("exam_date") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories Category[]
+  questions  Question[]
+  importJobs ImportJob[]
+
+  @@index([userId, createdAt])
+  @@map("exams")
+}
+
+model Category {
+  id        String  @id @default(cuid())
+  examId    String  @map("exam_id")
+  userId    String  @map("user_id")
+  parentId  String? @map("parent_id")
+  name      String  @db.VarChar(80)
+  sortOrder Int     @default(0) @map("sort_order")
+
+  exam       Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Category[]    @relation("CategoryTree")
+  questions  Question[]
+  stats      CategoryStat?
+  importJobs ImportJob[]   @relation("ImportTargetCategory")
+
+  @@index([examId])
+  @@index([userId])
+  @@index([parentId, sortOrder])
+  @@map("categories")
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  examId      String       @map("exam_id")
+  categoryId  String       @map("category_id")
+  type        QuestionType
+  stem        String       @db.Text
+  optionsJson Json         @default("[]") @map("options_json")
+  answer      String       @db.Text
+  explanation String       @default("") @db.Text
+  stemHash    String       @map("stem_hash") @db.VarChar(64)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  exam     Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attempts Attempt[]
+
+  @@unique([examId, stemHash])
+  @@index([categoryId, createdAt])
+  @@map("questions")
+}
+
+model Attempt {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  questionId        String   @map("question_id")
+  answerJson        Json     @map("answer_json")
+  isCorrect         Boolean? @map("is_correct")
+  score             Float?
+  aiScore           Float?   @map("ai_score")
+  aiFeedback        Json?    @map("ai_feedback")
+  overridden        Boolean  @default(false)
+  originalAttemptId String?  @map("original_attempt_id")
+  durationMs        Int?     @map("duration_ms")
+  answerHash        String?  @map("answer_hash") @db.VarChar(64)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  originalAttempt Attempt?  @relation("AttemptOverride", fields: [originalAttemptId], references: [id], onDelete: SetNull)
+  overrides       Attempt[] @relation("AttemptOverride")
+
+  @@index([userId, createdAt])
+  @@index([questionId, createdAt])
+  @@index([answerHash])
+  @@map("attempts")
+}
+
+model ImportJob {
+  id               String       @id @default(cuid())
+  userId           String       @map("user_id")
+  examId           String       @map("exam_id")
+  targetCategoryId String?      @map("target_category_id")
+  rawText          String       @map("raw_text") @db.Text
+  status           ImportStatus @default(queued)
+  progressJson     Json         @default("{}") @map("progress_json")
+  resultJson       Json?        @map("result_json")
+  error            String?      @db.Text
+  promptVersion    String?      @map("prompt_version") @db.VarChar(64)
+  model            String?      @db.VarChar(64)
+  tokenUsage       Int          @default(0) @map("token_usage")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam           Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  targetCategory Category? @relation("ImportTargetCategory", fields: [targetCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, createdAt])
+  @@index([examId])
+  @@index([targetCategoryId])
+  @@map("import_jobs")
+}
+
+model CategoryStat {
+  id          String   @id @default(cuid())
+  categoryId  String   @unique @map("category_id")
+  total       Int      @default(0)
+  passed      Int      @default(0)
+  answerCount Int      @default(0) @map("answer_count")
+  errorCount  Int      @default(0) @map("error_count")
+  errorRate   Float?   @map("error_rate")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("category_stats")
+}

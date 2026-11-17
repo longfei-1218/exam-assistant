@@ -17,6 +17,7 @@ const envSchema = z.object({
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   LLM_PROVIDER: z.string().default('deepseek'),
   LLM_MODEL: z.string().default('deepseek-chat'),
+  LLM_TOKEN_ENCRYPTION_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
 });
 

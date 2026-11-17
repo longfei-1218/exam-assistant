@@ -1,11 +1,13 @@
 export type LlmProvider = 'deepseek';
 
-export type LlmModel = 'deepseek-flash' | 'deepseek-pro';
+export type LlmModel = 'deepseek-chat' | 'deepseek-flash' | 'deepseek-pro';
 
 export type LlmConfig = {
   provider: LlmProvider;
   model: LlmModel;
   apiToken: string;
+  configured?: boolean;
+  apiTokenMasked?: string | null;
 };
 
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
@@ -25,6 +27,8 @@ export type AuthUser = {
 export type AuthSession = {
   user: AuthUser;
   token: string;
+  refreshToken: string;
+  expiresIn?: number;
 };
 
 export type CategoryStats = {
@@ -70,7 +74,9 @@ export type LoginInput = {
 export type UpdateProfileInput = {
   nickname: string;
   avatarUrl: string | null;
-  llmConfig: LlmConfig;
+  llmConfig: Omit<LlmConfig, 'apiToken'> & {
+    apiToken?: string | null;
+  };
 };
 
 export type ExamInput = {

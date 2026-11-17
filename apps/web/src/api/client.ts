@@ -56,6 +56,50 @@ type Database = {
 
 const DB_KEY = 'exam-assistant.db';
 const SESSION_KEY = 'exam-assistant.session';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+type ApiErrorPayload = {
+  message?: string;
+  code?: string;
+};
+
+async function apiRequest<T>(
+  path: string,
+  init: RequestInit & { token?: string } = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (init.token) {
+    headers.set('Authorization', `Bearer ${init.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
+  const raw = await response.text();
+  let data: unknown = null;
+
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as unknown;
+    } catch {
+      data = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const message =
+      typeof data === 'object' && data !== null
+        ? (data as ApiErrorPayload).message ?? `请求失败 (${response.status})`
+        : `请求失败 (${response.status})`;
+    throw new Error(message);
+  }
+
+  return data as T;
+}
 
 const delay = (milliseconds = 220) =>
   new Promise<void>((resolve) => {
@@ -106,6 +150,11 @@ function readSession(): AuthSession | null {
 
   try {
     const session = JSON.parse(raw) as AuthSession;
+    if (!session.token?.startsWith('eyJ') || !session.refreshToken?.startsWith('rt_')) {
+      clearSession();
+      return null;
+    }
+
     return {
       ...session,
       user: normalizeUserProfile(session.user),
@@ -128,7 +177,9 @@ function normalizeUserProfile(user: {
   email: string;
   nickname: string;
   avatarUrl?: string | null;
-  llmConfig?: Partial<LlmConfig>;
+  llmConfig?: Partial<LlmConfig> & {
+    apiTokenMasked?: string | null;
+  };
 }): AuthUser {
   const model = user.llmConfig?.model;
 
@@ -143,14 +194,16 @@ function normalizeUserProfile(user: {
           ? user.llmConfig.provider
           : DEFAULT_LLM_CONFIG.provider,
       model:
-        model === 'deepseek-pro' || model === 'deepseek-flash' ? model : DEFAULT_LLM_CONFIG.model,
+        model === 'deepseek-pro' ||
+        model === 'deepseek-flash' ||
+        model === 'deepseek-chat'
+          ? model
+          : DEFAULT_LLM_CONFIG.model,
       apiToken: user.llmConfig?.apiToken ?? DEFAULT_LLM_CONFIG.apiToken,
+      configured: user.llmConfig?.configured ?? false,
+      apiTokenMasked: user.llmConfig?.apiTokenMasked ?? null,
     },
   };
-}
-
-function publicUser(user: StoredUser): AuthUser {
-  return normalizeUserProfile(user);
 }
 
 function currentStoredUser(): StoredUser | null {
@@ -160,7 +213,30 @@ function currentStoredUser(): StoredUser | null {
   }
 
   const database = readDatabase();
-  return database.users.find((user) => user.id === session.user.id) ?? null;
+  const existing = database.users.find((user) => user.id === session.user.id);
+  if (existing) {
+    return existing;
+  }
+
+  const profile = session.user;
+  const user: StoredUser = {
+    id: profile.id,
+    email: profile.email,
+    password: '',
+    nickname: profile.nickname,
+    avatarUrl: profile.avatarUrl,
+    llmConfig: {
+      provider: profile.llmConfig.provider,
+      model: profile.llmConfig.model,
+      apiToken: profile.llmConfig.apiToken,
+      configured: profile.llmConfig.configured,
+      apiTokenMasked: profile.llmConfig.apiTokenMasked,
+    },
+  };
+
+  database.users.push(user);
+  writeDatabase(database);
+  return user;
 }
 
 function requireCurrentUser(): StoredUser {
@@ -174,15 +250,6 @@ function requireCurrentUser(): StoredUser {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
-}
-
-function createSession(user: StoredUser): AuthSession {
-  const session = {
-    user: publicUser(user),
-    token: createId('token'),
-  };
-  writeSession(session);
-  return session;
 }
 
 function normalizeStemHash(stem: string) {
@@ -265,90 +332,72 @@ function toCategory(category: StoredCategory, database: Database, userId: string
 }
 
 export async function register(input: RegisterInput): Promise<AuthSession> {
-  await delay();
-  const database = readDatabase();
-  const email = normalizeEmail(input.email);
+  const session = await apiRequest<AuthSession>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: normalizeEmail(input.email),
+      password: input.password,
+      nickname: input.nickname.trim() || undefined,
+    }),
+  });
 
-  if (!email || !input.password) {
-    throw new Error('邮箱和密码不能为空');
-  }
-
-  if (database.users.some((user) => user.email === email)) {
-    throw new Error('该邮箱已注册');
-  }
-
-  const user: StoredUser = {
-    id: createId('user'),
-    email,
-    password: input.password,
-    nickname: input.nickname.trim(),
+  const normalizedSession = {
+    ...session,
+    user: normalizeUserProfile(session.user),
   };
-
-  database.users.push(user);
-  writeDatabase(database);
-  return createSession(user);
+  writeSession(normalizedSession);
+  return normalizedSession;
 }
 
 export async function login(input: LoginInput): Promise<AuthSession> {
-  await delay();
-  const database = readDatabase();
-  const email = normalizeEmail(input.email);
-  const user = database.users.find((item) => item.email === email);
+  const session = await apiRequest<AuthSession>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: normalizeEmail(input.email),
+      password: input.password,
+    }),
+  });
 
-  if (!user || user.password !== input.password) {
-    throw new Error('邮箱或密码错误');
-  }
-
-  return createSession(user);
+  const normalizedSession = {
+    ...session,
+    user: normalizeUserProfile(session.user),
+  };
+  writeSession(normalizedSession);
+  return normalizedSession;
 }
 
 export async function logout(): Promise<void> {
-  await delay(80);
-  clearSession();
+  const session = readSession();
+  if (session) {
+    try {
+      await apiRequest('/api/auth/logout', {
+        method: 'POST',
+        token: session.token,
+        body: JSON.stringify({ refreshToken: session.refreshToken }),
+      });
+    } finally {
+      clearSession();
+    }
+  }
 }
 
 export async function updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
-  await delay();
-  const user = requireCurrentUser();
-  const database = readDatabase();
-  const storedUser = database.users.find((item) => item.id === user.id);
-
-  if (!storedUser) {
-    throw new Error('用户不存在');
-  }
-
-  const nickname = input.nickname.trim();
-  if (!nickname) {
-    throw new Error('昵称不能为空');
-  }
-
-  if (input.llmConfig.provider !== 'deepseek') {
-    throw new Error('暂不支持该模型供应商');
-  }
-
-  if (input.llmConfig.model !== 'deepseek-flash' && input.llmConfig.model !== 'deepseek-pro') {
-    throw new Error('暂不支持该模型');
-  }
-
-  storedUser.nickname = nickname;
-  storedUser.avatarUrl = input.avatarUrl;
-  storedUser.llmConfig = {
-    provider: input.llmConfig.provider,
-    model: input.llmConfig.model,
-    apiToken: input.llmConfig.apiToken.trim(),
-  };
-
-  writeDatabase(database);
-
   const session = readSession();
-  if (session) {
-    writeSession({
-      ...session,
-      user: publicUser(storedUser),
-    });
+  if (!session) {
+    throw new Error('请先登录');
   }
 
-  return publicUser(storedUser);
+  const user = await apiRequest<AuthUser>('/api/auth/me', {
+    method: 'PATCH',
+    token: session.token,
+    body: JSON.stringify(input),
+  });
+  const normalizedUser = normalizeUserProfile(user);
+  writeSession({
+    ...session,
+    user: normalizedUser,
+  });
+  return normalizedUser;
 }
 
 export function getStoredSession(): AuthSession | null {
